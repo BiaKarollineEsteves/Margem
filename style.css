@@ -1,0 +1,226 @@
+/* ── Imports ─────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+
+/* ── Variables ───────────────────────────────────────────────────────── */
+:root {
+    --bg:        #0D0F14;
+    --surface:   #161A22;
+    --card:      #1C2130;
+    --border:    #2A3045;
+    --accent:    #00E5A0;
+    --accent2:   #3B6EFF;
+    --danger:    #FF4D6D;
+    --warn:      #FFB547;
+    --text:      #E8EAF0;
+    --muted:     #7A8299;
+    --radius:    14px;
+}
+
+/* ── Global ──────────────────────────────────────────────────────────── */
+html, body, [data-testid="stAppViewContainer"] {
+    background-color: var(--bg) !important;
+    color: var(--text) !important;
+    font-family: 'DM Sans', sans-serif !important;
+}
+
+[data-testid="stHeader"] { display: none !important; }
+[data-testid="stSidebar"] { display: none !important; }
+[data-testid="stToolbar"] { display: none !important; }
+#MainMenu { visibility: hidden; }
+footer    { visibility: hidden; }
+
+/* Remove Streamlit padding */
+.block-container {
+    padding: 2rem 3rem !important;
+    max-width: 1400px !important;
+}
+
+/* ── Typography ──────────────────────────────────────────────────────── */
+h1, h2, h3, .logo, .logo-sm {
+    font-family: 'Syne', sans-serif !important;
+}
+
+.logo {
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -2px;
+    margin: 0 0 .25rem;
+}
+
+.logo-sm {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -1px;
+}
+
+.login-sub {
+    color: var(--muted);
+    font-size: .95rem;
+    margin-bottom: 2rem;
+}
+
+.section-title {
+    font-family: 'Syne', sans-serif !important;
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    color: var(--muted) !important;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin: 1.5rem 0 .75rem !important;
+}
+
+/* ── Login ───────────────────────────────────────────────────────────── */
+.login-wrap {
+    max-width: 400px;
+    margin: 8vh auto 0;
+    padding: 3rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+}
+
+/* ── Inputs ──────────────────────────────────────────────────────────── */
+input[type="text"],
+input[type="password"],
+input[type="number"] {
+    background: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text) !important;
+    border-radius: 8px !important;
+}
+
+input:focus {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px rgba(0,229,160,.15) !important;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+[data-testid="baseButton-secondary"],
+[data-testid="baseButton-primary"] {
+    background: var(--accent) !important;
+    color: #000 !important;
+    font-weight: 600 !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    transition: opacity .2s !important;
+}
+
+[data-testid="baseButton-secondary"]:hover,
+[data-testid="baseButton-primary"]:hover {
+    opacity: .85 !important;
+}
+
+/* ── Radio (tabela) ──────────────────────────────────────────────────── */
+[data-testid="stRadio"] > div { gap: 12px; }
+[data-testid="stRadio"] label {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 18px !important;
+    color: var(--muted) !important;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .2s;
+}
+[data-testid="stRadio"] label:has(input:checked) {
+    border-color: var(--accent);
+    color: var(--accent) !important;
+    background: rgba(0,229,160,.08);
+}
+
+/* ── Item card ───────────────────────────────────────────────────────── */
+.item-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: .75rem;
+    transition: border-color .2s;
+}
+
+.item-card:hover { border-color: var(--accent2); }
+
+/* ── DataFrames ──────────────────────────────────────────────────────── */
+[data-testid="stDataFrame"] {
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    overflow: hidden;
+}
+
+/* ── Metrics ─────────────────────────────────────────────────────────── */
+[data-testid="stMetric"] {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+}
+
+[data-testid="stMetricLabel"] { color: var(--muted) !important; font-size: .8rem !important; }
+[data-testid="stMetricValue"] { color: var(--text) !important; font-family: 'Syne', sans-serif !important; }
+[data-testid="stMetricDelta"] svg { display: none; }
+
+/* ── Expander ────────────────────────────────────────────────────────── */
+[data-testid="stExpander"] {
+    background: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+}
+
+/* ── Alerts ──────────────────────────────────────────────────────────── */
+[data-testid="stAlert"] { border-radius: var(--radius) !important; }
+
+/* ── Divider ─────────────────────────────────────────────────────────── */
+hr { border-color: var(--border) !important; }
+
+/* ── Cadastro page ───────────────────────────────────────────────────── */
+.cadastro-wrap { max-width: 560px !important; }
+
+.info-box {
+    background: rgba(0,229,160,.07);
+    border: 1px solid rgba(0,229,160,.3);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    color: var(--text);
+    font-size: .92rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.7;
+}
+
+.steps-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    color: var(--muted);
+    font-size: .88rem;
+    margin-top: .75rem;
+    line-height: 1.9;
+}
+
+.steps-box code {
+    background: var(--card);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--accent);
+    font-size: .85rem;
+}
+
+/* ── Usuario tag ─────────────────────────────────────────────────────── */
+.usuario-tag {
+    color: var(--muted);
+    font-size: .85rem;
+    margin: 0;
+    padding-top: .6rem;
+    text-align: right;
+}
+
+/* ── Selectbox ───────────────────────────────────────────────────────── */
+[data-testid="stSelectbox"] > div > div {
+    background: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    color: var(--text) !important;
+}
