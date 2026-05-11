@@ -2,18 +2,267 @@ import streamlit as st
 import pandas as pd
 from pathlib import Path
 import hashlib
+import base64
 
 # ─── Page config ────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="OrçaPro",
+    page_title="Grupo LLE — Orçamentos",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-# ─── Inject CSS ─────────────────────────────────────────────────────────────
-with open("style.css") as f:
-    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+# ─── Cores da identidade Grupo LLE ──────────────────────────────────────────
+AMARELO  = "#FAC319"
+VERDE    = "#0F8C3B"
+AZUL     = "#007FE0"
+AZUL_ESC = "#041747"
+
+# ─── Logo ────────────────────────────────────────────────────────────────────
+def get_logo_b64():
+    p = Path(__file__).parent / "logo.png"
+    if p.exists():
+        return base64.b64encode(p.read_bytes()).decode()
+    return None
+
+LOGO_B64 = get_logo_b64()
+
+def logo_img(height=38):
+    if LOGO_B64:
+        return f'<img src="data:image/png;base64,{LOGO_B64}" style="height:{height}px;" />'
+    return f'<span style="color:#fff;font-weight:700;font-size:18px;">GRUPO LLE</span>'
+
+def page_header(titulo, subtitulo=""):
+    st.markdown(
+        f'<div class="hbar">{logo_img(38)}'
+        f'<div><div class="hbar-title">{titulo}</div>'
+        f'{"<div class=hbar-sub>" + subtitulo + "</div>" if subtitulo else ""}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+# ─── CSS ─────────────────────────────────────────────────────────────────────
+st.markdown(f"""
+<style>
+/* ── Global ── */
+html, body, [data-testid="stAppViewContainer"] {{
+    background: #f4f7fc !important;
+    font-family: 'Inter', 'Segoe UI', sans-serif !important;
+    color: #1a1a2e !important;
+}}
+[data-testid="stHeader"] {{ display:none !important; }}
+[data-testid="stToolbar"] {{ display:none !important; }}
+#MainMenu {{ visibility:hidden; }}
+footer {{ visibility:hidden; }}
+.block-container {{ padding: 1.5rem 2.5rem !important; max-width: 1300px !important; }}
+
+/* ── Tipografia ── */
+h1, h2, h3 {{ color: {AZUL_ESC} !important; font-weight: 700 !important; }}
+
+/* ── Header bar ── */
+.hbar {{
+    background: {AZUL_ESC};
+    padding: 14px 22px;
+    border-radius: 12px;
+    margin-bottom: 22px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}}
+.hbar-title {{ color: #fff; font-size: 20px; font-weight: 700; }}
+.hbar-sub   {{ color: {AMARELO}; font-size: 12px; margin-top: 2px; }}
+
+/* ── Login card ── */
+.login-outer {{
+    max-width: 420px;
+    margin: 6vh auto 0;
+}}
+.login-top {{
+    background: {AZUL_ESC};
+    padding: 32px 28px 24px;
+    border-radius: 14px 14px 0 0;
+    text-align: center;
+}}
+.login-body {{
+    background: #fff;
+    border: 1px solid #dde3ef;
+    border-top: none;
+    border-radius: 0 0 14px 14px;
+    padding: 24px 28px 30px;
+}}
+.login-sub {{
+    text-align: center;
+    color: #666;
+    font-size: 13px;
+    margin: 0 0 18px;
+}}
+
+/* ── Cadastro card ── */
+.cadastro-body {{
+    max-width: 540px;
+    margin: 4vh auto 0;
+    background: #fff;
+    border: 1px solid #dde3ef;
+    border-radius: 14px;
+    padding: 30px 32px 34px;
+}}
+.cadastro-logo {{
+    text-align: center;
+    margin-bottom: 18px;
+}}
+
+/* ── Info / steps box ── */
+.info-box {{
+    background: #edf4ff;
+    border: 1px solid #b3d0f5;
+    border-left: 4px solid {AZUL};
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13.5px;
+    color: #1a2e50;
+    line-height: 1.8;
+    margin-bottom: 20px;
+}}
+.steps-box {{
+    background: #fafbfd;
+    border: 1px solid #dde3ef;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #555;
+    line-height: 2;
+    margin-top: 10px;
+}}
+.steps-box code {{
+    background: #f0f2f8;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: {AZUL_ESC};
+    font-size: .85rem;
+}}
+
+/* ── Botões ── */
+[data-testid="baseButton-primary"] {{
+    background: {AZUL_ESC} !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+}}
+[data-testid="baseButton-primary"]:hover {{
+    background: {AZUL} !important;
+}}
+[data-testid="baseButton-secondary"] {{
+    background: #fff !important;
+    color: {AZUL_ESC} !important;
+    border: 1.5px solid {AZUL_ESC} !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+}}
+
+/* ── Inputs ── */
+input[type="text"], input[type="password"], input[type="number"] {{
+    background: #fff !important;
+    border: 1.5px solid #d0d8ea !important;
+    border-radius: 7px !important;
+    color: #1a1a2e !important;
+}}
+input:focus {{
+    border-color: {AZUL} !important;
+    box-shadow: 0 0 0 3px rgba(0,127,224,.12) !important;
+}}
+
+/* ── Métricas ── */
+[data-testid="metric-container"] {{
+    background: #fff;
+    border-radius: 10px;
+    padding: 14px 18px;
+    border-left: 4px solid {AMARELO};
+    box-shadow: 0 1px 4px rgba(4,23,71,.07);
+}}
+[data-testid="stMetricLabel"] {{ color: #666 !important; font-size: .8rem !important; }}
+[data-testid="stMetricValue"] {{ color: {AZUL_ESC} !important; font-weight: 700 !important; }}
+
+/* ── Radio (tabela) ── */
+[data-testid="stRadio"] label {{
+    background: #fff;
+    border: 1.5px solid #d0d8ea;
+    border-radius: 7px;
+    padding: 6px 18px !important;
+    color: #555 !important;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .15s;
+}}
+[data-testid="stRadio"] label:has(input:checked) {{
+    border-color: {AMARELO};
+    background: #fffbec;
+    color: {AZUL_ESC} !important;
+    font-weight: 700;
+}}
+
+/* ── Item card ── */
+.item-card {{
+    background: #fff;
+    border: 1px solid #dde3ef;
+    border-left: 4px solid {AMARELO};
+    border-radius: 10px;
+    padding: .9rem 1.2rem;
+    margin-bottom: .6rem;
+    box-shadow: 0 1px 3px rgba(4,23,71,.05);
+}}
+
+/* ── Expander ── */
+[data-testid="stExpander"] {{
+    border: 1px solid #dde3ef !important;
+    border-radius: 9px !important;
+    background: #fff !important;
+}}
+
+/* ── DataFrames ── */
+[data-testid="stDataFrame"] {{
+    border: 1px solid #dde3ef !important;
+    border-radius: 9px !important;
+}}
+
+/* ── Alertas de alçada ── */
+.alcada-ok   {{ background:#edf7f1; color:#0a5c31; padding:10px 14px; border-radius:8px; font-size:13px; border-left:4px solid {VERDE}; }}
+.alcada-warn {{ background:#fef9e7; color:#7d5c00; padding:10px 14px; border-radius:8px; font-size:13px; border-left:4px solid {AMARELO}; }}
+.alcada-err  {{ background:#fdf0f0; color:#8b1a1a; padding:10px 14px; border-radius:8px; font-size:13px; border-left:4px solid #dc3545; }}
+
+/* ── Selectbox ── */
+[data-testid="stSelectbox"] > div > div {{
+    background: #fff !important;
+    border: 1.5px solid #d0d8ea !important;
+    border-radius: 7px !important;
+    color: #1a1a2e !important;
+}}
+
+/* ── Section title ── */
+.section-title {{
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    color: {AZUL_ESC} !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 1.5rem 0 .75rem !important;
+    border-bottom: 2px solid {AMARELO};
+    padding-bottom: 6px;
+    display: inline-block;
+}}
+
+/* ── Usuario tag ── */
+.usuario-tag {{
+    color: #666;
+    font-size: .85rem;
+    margin: 0;
+    padding-top: .5rem;
+    text-align: right;
+}}
+
+/* ── Divider ── */
+hr {{ border-color: #dde3ef !important; }}
+</style>
+""", unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  AUTH HELPERS
@@ -58,95 +307,109 @@ init_session()
 #  PÁGINA DE CADASTRO — GERADOR DE HASH
 # ═══════════════════════════════════════════════════════════════════════════
 def cadastro_page():
-    st.markdown('<div class="login-wrap cadastro-wrap">', unsafe_allow_html=True)
-    st.markdown('<h1 class="logo">OrçaPro</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="login-sub">Criar credencial de acesso</p>', unsafe_allow_html=True)
+    _, col, _ = st.columns([1, 1.4, 1])
+    with col:
+        st.markdown('<div class="cadastro-body">', unsafe_allow_html=True)
+        if LOGO_B64:
+            st.markdown(
+                f'<div class="cadastro-logo">'
+                f'<img src="data:image/png;base64,{LOGO_B64}" style="max-width:180px;width:100%;background:{AZUL_ESC};padding:12px 18px;border-radius:8px;" />'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+        st.markdown(f'<h3 style="color:{AZUL_ESC};margin:0 0 4px;">Criar credencial de acesso</h3>', unsafe_allow_html=True)
+        st.markdown('<p style="color:#666;font-size:13px;margin-bottom:20px;">Sistema de Orçamentos — Grupo LLE</p>', unsafe_allow_html=True)
 
-    st.markdown("""
-    <div class="info-box">
-        <b>Como funciona em 3 passos:</b><br><br>
-        <b>1.</b> Preencha usuário e senha abaixo e clique em <b>Gerar Hash</b><br>
-        <b>2.</b> Copie o bloco <code>toml</code> gerado<br>
-        <b>3.</b> No Streamlit Cloud → seu app → <b>⚙️ Settings → Secrets</b> → cole e salve
-    </div>
-    """, unsafe_allow_html=True)
+        st.markdown("""
+        <div class="info-box">
+            <b>Como funciona em 3 passos:</b><br>
+            <b>1.</b> Preencha usuário e senha abaixo e clique em <b>Gerar Hash</b><br>
+            <b>2.</b> Copie o bloco <code>toml</code> gerado<br>
+            <b>3.</b> No Streamlit Cloud → seu app → <b>⚙️ Settings → Secrets</b> → cole e salve
+        </div>
+        """, unsafe_allow_html=True)
 
-    with st.form("cadastro_form"):
-        novo_user  = st.text_input("Nome de usuário", placeholder="ex: joao_vendas")
-        nova_senha = st.text_input("Senha", type="password", placeholder="mínimo 6 caracteres")
-        confirma   = st.text_input("Confirmar senha", type="password", placeholder="repita a senha")
-        gerar      = st.form_submit_button("🔑 Gerar Hash")
+        with st.form("cadastro_form"):
+            novo_user  = st.text_input("Nome de usuário", placeholder="ex: joao_vendas")
+            nova_senha = st.text_input("Senha", type="password", placeholder="mínimo 6 caracteres")
+            confirma   = st.text_input("Confirmar senha", type="password", placeholder="repita a senha")
+            gerar      = st.form_submit_button("🔑 Gerar Hash", type="primary", use_container_width=True)
 
-    if gerar:
-        erros = []
-        if not novo_user.strip():
-            erros.append("Informe um nome de usuário.")
-        if len(nova_senha) < 6:
-            erros.append("A senha precisa ter pelo menos 6 caracteres.")
-        if nova_senha != confirma:
-            erros.append("As senhas não coincidem.")
+        if gerar:
+            erros = []
+            if not novo_user.strip():         erros.append("Informe um nome de usuário.")
+            if len(nova_senha) < 6:           erros.append("A senha precisa ter pelo menos 6 caracteres.")
+            if nova_senha != confirma:        erros.append("As senhas não coincidem.")
+            if erros:
+                for e in erros: st.error(e)
+            else:
+                h = hash_password(nova_senha)
+                st.success("✅ Hash gerado com sucesso!")
+                st.markdown("##### Cole isso nos Secrets do Streamlit Cloud:")
+                st.code(f'[users]\n{novo_user.strip()} = "{h}"', language="toml")
+                st.markdown("""
+                <div class="steps-box">
+                    <b>Para múltiplos usuários</b>, acumule no mesmo bloco:<br>
+                    <code>[users]<br>joao = "hash_joao"<br>maria = "hash_maria"</code>
+                </div>
+                """, unsafe_allow_html=True)
+                st.info("🔒 O hash é calculado só no seu navegador. A senha nunca é armazenada.", icon="🔒")
 
-        if erros:
-            for e in erros:
-                st.error(e)
-        else:
-            h = hash_password(nova_senha)
-            st.success("✅ Hash gerado com sucesso!")
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("← Voltar para login", use_container_width=True):
+            st.session_state.pagina = "login"
+            st.rerun()
 
-            st.markdown("---")
-            st.markdown("##### Cole isso nos Secrets do Streamlit Cloud:")
-            st.code(f'[users]\n{novo_user.strip()} = "{h}"', language="toml")
-
-            st.markdown("""
-            <div class="steps-box">
-                <b>Para adicionar múltiplos usuários</b>, acumule no mesmo bloco <code>[users]</code>:<br><br>
-                <code>[users]<br>
-                joao = "hash_do_joao"<br>
-                maria = "hash_da_maria"</code>
-            </div>
-            """, unsafe_allow_html=True)
-
-            st.info("🔒 O hash é calculado só no seu navegador. A senha nunca trafega nem é salva.", icon="🔒")
-
-    st.markdown("---")
-    if st.button("← Voltar para login"):
-        st.session_state.pagina = "login"
-        st.rerun()
-
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  PÁGINA DE LOGIN
 # ═══════════════════════════════════════════════════════════════════════════
 def login_page():
-    st.markdown('<div class="login-wrap">', unsafe_allow_html=True)
-    st.markdown('<h1 class="logo">OrçaPro</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="login-sub">Sistema interno de orçamentos</p>', unsafe_allow_html=True)
-
-    if not has_any_user_configured():
-        st.warning("Nenhum usuário configurado ainda. Crie sua credencial primeiro.")
-
-    with st.form("login_form"):
-        user = st.text_input("Usuário", placeholder="seu usuário")
-        pw   = st.text_input("Senha", type="password", placeholder="••••••••")
-        btn  = st.form_submit_button("Entrar →")
-
-    if btn:
-        if not has_any_user_configured():
-            st.error("Nenhum usuário cadastrado nos Secrets. Clique em 'Criar credencial' abaixo.")
-        elif check_credentials(user, pw):
-            st.session_state.logged_in     = True
-            st.session_state.usuario_logado = user.strip()
-            st.rerun()
+    _, col, _ = st.columns([1, 1.1, 1])
+    with col:
+        st.markdown("<br>", unsafe_allow_html=True)
+        # Topo azul com logo
+        if LOGO_B64:
+            st.markdown(
+                f'<div class="login-top">'
+                f'<img src="data:image/png;base64,{LOGO_B64}" style="max-width:210px;width:100%;" />'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
         else:
-            st.error("Usuário ou senha incorretos.")
+            st.markdown(
+                f'<div class="login-top"><span style="color:#fff;font-size:22px;font-weight:700;">GRUPO LLE</span></div>',
+                unsafe_allow_html=True,
+            )
 
-    st.markdown('<div style="text-align:center;margin-top:1.5rem;">', unsafe_allow_html=True)
-    if st.button("Criar credencial / Gerar hash"):
-        st.session_state.pagina = "cadastro"
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('<div class="login-body">', unsafe_allow_html=True)
+        st.markdown('<p class="login-sub">Sistema de Orçamentos</p>', unsafe_allow_html=True)
+
+        if not has_any_user_configured():
+            st.warning("Nenhum usuário configurado ainda. Crie sua credencial primeiro.")
+
+        with st.form("login_form"):
+            user = st.text_input("Usuário", placeholder="seu usuário")
+            pw   = st.text_input("Senha", type="password", placeholder="••••••••")
+            btn  = st.form_submit_button("Entrar →", type="primary", use_container_width=True)
+
+        if btn:
+            if not has_any_user_configured():
+                st.error("Nenhum usuário nos Secrets. Clique em 'Criar credencial' abaixo.")
+            elif check_credentials(user, pw):
+                st.session_state.logged_in      = True
+                st.session_state.usuario_logado = user.strip()
+                st.rerun()
+            else:
+                st.error("Usuário ou senha incorretos.")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("Criar credencial / Gerar hash", use_container_width=True):
+            st.session_state.pagina = "cadastro"
+            st.rerun()
+
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  HELPERS DE TABELA
@@ -195,35 +458,40 @@ def calcular_margem(custo: float, preco: float) -> float:
         return (preco - custo) / preco * 100
     return 0.0
 
+def brl(v):
+    return f"R$ {float(v):,.2f}".replace(",","X").replace(".",",").replace("X",".")
+
 # ═══════════════════════════════════════════════════════════════════════════
 #  APP PRINCIPAL
 # ═══════════════════════════════════════════════════════════════════════════
 def main_app():
     # ── Header ──────────────────────────────────────────────────────────────
-    col_logo, col_tabela_sel, col_user, col_logout = st.columns([2, 5, 2, 1])
-    with col_logo:
-        st.markdown('<span class="logo-sm">OrçaPro</span>', unsafe_allow_html=True)
+    col_tabela_sel, col_user, col_logout = st.columns([6, 2, 1])
     with col_tabela_sel:
-        tabela_escolha = st.radio(
-            "Tabela de preços",
-            ["King", "Pisa"],
-            horizontal=True,
-            key="tabela_radio",
-        )
-        if tabela_escolha != st.session_state.tabela:
-            st.session_state.tabela         = tabela_escolha
-            st.session_state.df_tabela      = load_tabela(tabela_escolha)
-            st.session_state.itens_orcamento = []
+        page_header("Sistema de Orçamentos", "Grupo LLE")
     with col_user:
         st.markdown(
             f'<p class="usuario-tag">👤 {st.session_state.usuario_logado}</p>',
             unsafe_allow_html=True,
         )
     with col_logout:
-        if st.button("Sair"):
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("Sair", use_container_width=True):
             for k in list(st.session_state.keys()):
                 del st.session_state[k]
             st.rerun()
+
+    # Seleção de tabela
+    tabela_escolha = st.radio(
+        "Tabela de preços",
+        ["King", "Pisa"],
+        horizontal=True,
+        key="tabela_radio",
+    )
+    if tabela_escolha != st.session_state.tabela:
+        st.session_state.tabela          = tabela_escolha
+        st.session_state.df_tabela       = load_tabela(tabela_escolha)
+        st.session_state.itens_orcamento = []
 
     st.markdown("---")
     df = st.session_state.df_tabela
@@ -248,7 +516,8 @@ def main_app():
         return
 
     # ── Busca de produto ──────────────────────────────────────────────────────
-    st.markdown('<h3 class="section-title">🔍 Adicionar Produto</h3>', unsafe_allow_html=True)
+    st.markdown('<span class="section-title">🔍 Adicionar Produto</span>', unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns([3, 2, 1])
     with c1:
@@ -269,9 +538,7 @@ def main_app():
         mask = pd.Series([False] * len(df_filtrado), index=df_filtrado.index)
         for col in ["codigo", "descricao"]:
             if col in df_filtrado.columns:
-                mask |= df_filtrado[col].astype(str).str.lower().str.contains(
-                    busca.lower(), na=False
-                )
+                mask |= df_filtrado[col].astype(str).str.lower().str.contains(busca.lower(), na=False)
         df_filtrado = df_filtrado[mask]
 
     if busca or marca_filtro != "Todas":
@@ -287,7 +554,7 @@ def main_app():
             cod_options = df_filtrado["codigo"].astype(str).tolist() if "codigo" in df_filtrado.columns else []
             cod_sel = st.selectbox("Selecionar produto pelo código", options=cod_options, key="cod_sel")
 
-            if st.button("➕ Adicionar ao orçamento", key="add_btn"):
+            if st.button("➕ Adicionar ao orçamento", type="primary", key="add_btn"):
                 row = df_filtrado[df_filtrado["codigo"].astype(str) == cod_sel].iloc[0]
                 item = {
                     "codigo":        str(row.get("codigo", "")),
@@ -300,11 +567,12 @@ def main_app():
                     "desc_item_rs":  0.0,
                 }
                 st.session_state.itens_orcamento.append(item)
-                st.success(f"'{item['descricao']}' adicionado!")
+                st.success(f"✅ '{item['descricao']}' adicionado!")
                 st.rerun()
 
     # ── Orçamento ────────────────────────────────────────────────────────────
-    st.markdown('<h3 class="section-title">🧾 Orçamento</h3>', unsafe_allow_html=True)
+    st.markdown('<span class="section-title">🧾 Orçamento</span>', unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
 
     itens = st.session_state.itens_orcamento
     if not itens:
@@ -371,8 +639,7 @@ def main_app():
                 else:
                     preco_apos_item = preco_orig
 
-                preco_final = preco_apos_item * (1 - dg_pct / 100) if dg_pct > 0 else preco_apos_item
-
+                preco_final  = preco_apos_item * (1 - dg_pct / 100) if dg_pct > 0 else preco_apos_item
                 margem_orig  = calcular_margem(custo_total, preco_orig)
                 margem_final = calcular_margem(custo_total, preco_final)
 
@@ -398,25 +665,25 @@ def main_app():
     if to_remove:
         st.rerun()
 
-    # Desconto geral R$ no total (só se não usou %)
     if dg_pct == 0 and dg_rs > 0:
         total_venda_final = max(0.0, total_venda_final - dg_rs)
 
     # ── Resumo ────────────────────────────────────────────────────────────────
     st.markdown("---")
-    st.markdown('<h3 class="section-title">📊 Resumo do Pedido</h3>', unsafe_allow_html=True)
+    st.markdown('<span class="section-title">📊 Resumo do Pedido</span>', unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
 
     margem_orig_geral  = calcular_margem(total_custo, total_venda_original)
     margem_final_geral = calcular_margem(total_custo, total_venda_final)
 
     r1, r2, r3, r4 = st.columns(4)
     with r1:
-        st.metric("Total tabela", f"R$ {total_venda_original:,.2f}")
+        st.metric("Total tabela", brl(total_venda_original))
     with r2:
         st.metric(
             "Total com descontos",
-            f"R$ {total_venda_final:,.2f}",
-            delta=f"R$ {total_venda_final - total_venda_original:,.2f}",
+            brl(total_venda_final),
+            delta=f"R$ {total_venda_final - total_venda_original:,.2f}".replace(",","X").replace(".",",").replace("X","."),
             delta_color="inverse",
         )
     with r3:
@@ -429,10 +696,13 @@ def main_app():
             delta_color="normal" if margem_final_geral >= margem_orig_geral else "inverse",
         )
 
+    st.markdown("<br>", unsafe_allow_html=True)
     if margem_final_geral < 10:
-        st.error("🚨 Margem abaixo de 10%! Revise os descontos antes de enviar.")
+        st.markdown('<div class="alcada-err">🚨 <b>Margem abaixo de 10%!</b> Revise os descontos antes de enviar o orçamento.</div>', unsafe_allow_html=True)
     elif margem_final_geral < 20:
-        st.warning("⚠️ Margem abaixo de 20%. Cuidado!")
+        st.markdown('<div class="alcada-warn">⚠️ <b>Margem abaixo de 20%.</b> Atenção antes de fechar o pedido.</div>', unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="alcada-ok">✅ <b>Margem saudável.</b> Orçamento dentro dos parâmetros.</div>', unsafe_allow_html=True)
 
     st.markdown("---")
     if st.button("🗑️ Limpar orçamento completo"):
