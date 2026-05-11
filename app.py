@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ─── Cores da identidade Grupo LLE ──────────────────────────────────────────
+# ─── Cores Grupo LLE ─────────────────────────────────────────────────────────
 AMARELO  = "#FAC319"
 VERDE    = "#0F8C3B"
 AZUL     = "#007FE0"
@@ -43,229 +43,137 @@ def page_header(titulo, subtitulo=""):
 # ─── CSS ─────────────────────────────────────────────────────────────────────
 st.markdown(f"""
 <style>
-/* ── Global ── */
 html, body, [data-testid="stAppViewContainer"] {{
     background: #f4f7fc !important;
     font-family: 'Inter', 'Segoe UI', sans-serif !important;
     color: #1a1a2e !important;
 }}
-[data-testid="stHeader"] {{ display:none !important; }}
+[data-testid="stHeader"]  {{ display:none !important; }}
 [data-testid="stToolbar"] {{ display:none !important; }}
 #MainMenu {{ visibility:hidden; }}
-footer {{ visibility:hidden; }}
+footer    {{ visibility:hidden; }}
 .block-container {{ padding: 1.5rem 2.5rem !important; max-width: 1300px !important; }}
 
-/* ── Tipografia ── */
 h1, h2, h3 {{ color: {AZUL_ESC} !important; font-weight: 700 !important; }}
 
-/* ── Header bar ── */
 .hbar {{
-    background: {AZUL_ESC};
-    padding: 14px 22px;
-    border-radius: 12px;
-    margin-bottom: 22px;
-    display: flex;
-    align-items: center;
-    gap: 18px;
+    background: {AZUL_ESC}; padding: 14px 22px; border-radius: 12px;
+    margin-bottom: 22px; display: flex; align-items: center; gap: 18px;
 }}
 .hbar-title {{ color: #fff; font-size: 20px; font-weight: 700; }}
 .hbar-sub   {{ color: {AMARELO}; font-size: 12px; margin-top: 2px; }}
 
-/* ── Login card ── */
-.login-outer {{
-    max-width: 420px;
-    margin: 6vh auto 0;
-}}
+.login-outer {{ max-width: 420px; margin: 6vh auto 0; }}
 .login-top {{
-    background: {AZUL_ESC};
-    padding: 32px 28px 24px;
-    border-radius: 14px 14px 0 0;
-    text-align: center;
+    background: {AZUL_ESC}; padding: 32px 28px 24px;
+    border-radius: 14px 14px 0 0; text-align: center;
 }}
 .login-body {{
-    background: #fff;
-    border: 1px solid #dde3ef;
-    border-top: none;
-    border-radius: 0 0 14px 14px;
-    padding: 24px 28px 30px;
+    background: #fff; border: 1px solid #dde3ef; border-top: none;
+    border-radius: 0 0 14px 14px; padding: 24px 28px 30px;
 }}
-.login-sub {{
-    text-align: center;
-    color: #666;
-    font-size: 13px;
-    margin: 0 0 18px;
-}}
+.login-sub {{ text-align:center; color:#666; font-size:13px; margin:0 0 18px; }}
 
-/* ── Cadastro card ── */
 .cadastro-body {{
-    max-width: 540px;
-    margin: 4vh auto 0;
-    background: #fff;
-    border: 1px solid #dde3ef;
-    border-radius: 14px;
-    padding: 30px 32px 34px;
+    max-width: 540px; margin: 4vh auto 0; background: #fff;
+    border: 1px solid #dde3ef; border-radius: 14px; padding: 30px 32px 34px;
 }}
-.cadastro-logo {{
-    text-align: center;
-    margin-bottom: 18px;
-}}
+.cadastro-logo {{ text-align:center; margin-bottom:18px; }}
 
-/* ── Info / steps box ── */
 .info-box {{
-    background: #edf4ff;
-    border: 1px solid #b3d0f5;
-    border-left: 4px solid {AZUL};
-    border-radius: 8px;
-    padding: 12px 16px;
-    font-size: 13.5px;
-    color: #1a2e50;
-    line-height: 1.8;
-    margin-bottom: 20px;
+    background: #edf4ff; border: 1px solid #b3d0f5;
+    border-left: 4px solid {AZUL}; border-radius: 8px;
+    padding: 12px 16px; font-size: 13.5px; color: #1a2e50;
+    line-height: 1.8; margin-bottom: 20px;
 }}
 .steps-box {{
-    background: #fafbfd;
-    border: 1px solid #dde3ef;
-    border-radius: 8px;
-    padding: 12px 16px;
-    font-size: 13px;
-    color: #555;
-    line-height: 2;
-    margin-top: 10px;
+    background: #fafbfd; border: 1px solid #dde3ef; border-radius: 8px;
+    padding: 12px 16px; font-size: 13px; color: #555;
+    line-height: 2; margin-top: 10px;
 }}
 .steps-box code {{
-    background: #f0f2f8;
-    padding: 2px 6px;
-    border-radius: 4px;
-    color: {AZUL_ESC};
-    font-size: .85rem;
+    background: #f0f2f8; padding: 2px 6px; border-radius: 4px;
+    color: {AZUL_ESC}; font-size: .85rem;
 }}
 
-/* ── Botões ── */
 [data-testid="baseButton-primary"] {{
-    background: {AZUL_ESC} !important;
-    color: #fff !important;
-    border: none !important;
-    border-radius: 8px !important;
-    font-weight: 600 !important;
+    background: {AZUL_ESC} !important; color: #fff !important;
+    border: none !important; border-radius: 8px !important; font-weight: 600 !important;
 }}
-[data-testid="baseButton-primary"]:hover {{
-    background: {AZUL} !important;
-}}
+[data-testid="baseButton-primary"]:hover {{ background: {AZUL} !important; }}
 [data-testid="baseButton-secondary"] {{
-    background: #fff !important;
-    color: {AZUL_ESC} !important;
-    border: 1.5px solid {AZUL_ESC} !important;
-    border-radius: 8px !important;
-    font-weight: 600 !important;
+    background: #fff !important; color: {AZUL_ESC} !important;
+    border: 1.5px solid {AZUL_ESC} !important; border-radius: 8px !important;
 }}
 
-/* ── Inputs ── */
 input[type="text"], input[type="password"], input[type="number"] {{
-    background: #fff !important;
-    border: 1.5px solid #d0d8ea !important;
-    border-radius: 7px !important;
-    color: #1a1a2e !important;
+    background: #fff !important; border: 1.5px solid #d0d8ea !important;
+    border-radius: 7px !important; color: #1a1a2e !important;
 }}
 input:focus {{
     border-color: {AZUL} !important;
     box-shadow: 0 0 0 3px rgba(0,127,224,.12) !important;
 }}
 
-/* ── Métricas ── */
 [data-testid="metric-container"] {{
-    background: #fff;
-    border-radius: 10px;
-    padding: 14px 18px;
+    background: #fff; border-radius: 10px; padding: 14px 18px;
     border-left: 4px solid {AMARELO};
     box-shadow: 0 1px 4px rgba(4,23,71,.07);
 }}
 [data-testid="stMetricLabel"] {{ color: #666 !important; font-size: .8rem !important; }}
 [data-testid="stMetricValue"] {{ color: {AZUL_ESC} !important; font-weight: 700 !important; }}
 
-/* ── Radio (tabela) ── */
 [data-testid="stRadio"] label {{
-    background: #fff;
-    border: 1.5px solid #d0d8ea;
-    border-radius: 7px;
-    padding: 6px 18px !important;
-    color: #555 !important;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all .15s;
+    background: #fff; border: 1.5px solid #d0d8ea; border-radius: 7px;
+    padding: 6px 18px !important; color: #555 !important;
+    font-weight: 500; cursor: pointer; transition: all .15s;
 }}
 [data-testid="stRadio"] label:has(input:checked) {{
-    border-color: {AMARELO};
-    background: #fffbec;
-    color: {AZUL_ESC} !important;
-    font-weight: 700;
+    border-color: {AMARELO}; background: #fffbec;
+    color: {AZUL_ESC} !important; font-weight: 700;
 }}
 
-/* ── Item card ── */
 .item-card {{
-    background: #fff;
-    border: 1px solid #dde3ef;
-    border-left: 4px solid {AMARELO};
-    border-radius: 10px;
-    padding: .9rem 1.2rem;
-    margin-bottom: .6rem;
+    background: #fff; border: 1px solid #dde3ef;
+    border-left: 4px solid {AMARELO}; border-radius: 10px;
+    padding: .9rem 1.2rem; margin-bottom: .6rem;
     box-shadow: 0 1px 3px rgba(4,23,71,.05);
 }}
 
-/* ── Expander ── */
 [data-testid="stExpander"] {{
-    border: 1px solid #dde3ef !important;
-    border-radius: 9px !important;
+    border: 1px solid #dde3ef !important; border-radius: 9px !important;
     background: #fff !important;
 }}
-
-/* ── DataFrames ── */
 [data-testid="stDataFrame"] {{
-    border: 1px solid #dde3ef !important;
-    border-radius: 9px !important;
+    border: 1px solid #dde3ef !important; border-radius: 9px !important;
 }}
 
-/* ── Alertas de alçada ── */
 .alcada-ok   {{ background:#edf7f1; color:#0a5c31; padding:10px 14px; border-radius:8px; font-size:13px; border-left:4px solid {VERDE}; }}
 .alcada-warn {{ background:#fef9e7; color:#7d5c00; padding:10px 14px; border-radius:8px; font-size:13px; border-left:4px solid {AMARELO}; }}
 .alcada-err  {{ background:#fdf0f0; color:#8b1a1a; padding:10px 14px; border-radius:8px; font-size:13px; border-left:4px solid #dc3545; }}
 
-/* ── Selectbox ── */
 [data-testid="stSelectbox"] > div > div {{
-    background: #fff !important;
-    border: 1.5px solid #d0d8ea !important;
-    border-radius: 7px !important;
-    color: #1a1a2e !important;
+    background: #fff !important; border: 1.5px solid #d0d8ea !important;
+    border-radius: 7px !important; color: #1a1a2e !important;
 }}
 
-/* ── Section title ── */
 .section-title {{
-    font-size: 1rem !important;
-    font-weight: 700 !important;
-    color: {AZUL_ESC} !important;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin: 1.5rem 0 .75rem !important;
-    border-bottom: 2px solid {AMARELO};
-    padding-bottom: 6px;
+    font-size: 1rem !important; font-weight: 700 !important;
+    color: {AZUL_ESC} !important; text-transform: uppercase;
+    letter-spacing: 1px; margin: 1.5rem 0 .75rem !important;
+    border-bottom: 2px solid {AMARELO}; padding-bottom: 6px;
     display: inline-block;
 }}
-
-/* ── Usuario tag ── */
 .usuario-tag {{
-    color: #666;
-    font-size: .85rem;
-    margin: 0;
-    padding-top: .5rem;
-    text-align: right;
+    color: #666; font-size: .85rem; margin: 0;
+    padding-top: .5rem; text-align: right;
 }}
-
-/* ── Divider ── */
 hr {{ border-color: #dde3ef !important; }}
 </style>
 """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════
-#  AUTH HELPERS
+#  AUTH
 # ═══════════════════════════════════════════════════════════════════════════
 def hash_password(pw: str) -> str:
     return hashlib.sha256(pw.encode()).hexdigest()
@@ -284,7 +192,7 @@ def has_any_user_configured() -> bool:
         return False
 
 # ═══════════════════════════════════════════════════════════════════════════
-#  SESSION DEFAULTS
+#  SESSION
 # ═══════════════════════════════════════════════════════════════════════════
 def init_session():
     defaults = {
@@ -304,7 +212,80 @@ def init_session():
 init_session()
 
 # ═══════════════════════════════════════════════════════════════════════════
-#  PÁGINA DE CADASTRO — GERADOR DE HASH
+#  LEITURA DO MAPÃO
+#  Formato: arquivo .xls gerado pelo sistema interno
+#  Coluna MAP_EMPRESA: "LLE PISA" → tabela Pisa | "LLE KING" → tabela King
+# ═══════════════════════════════════════════════════════════════════════════
+MAPAO_FILE = "tabelas/mapao.xls"
+
+# Mapeamento de colunas do MAPÃO → nomes internos
+COL_MAP = {
+    "MAP_CODPROD":    "codigo",
+    "MAP_DESCRPROD":  "descricao",
+    "MAP_MARCA":      "marca",
+    "MAP_CUSTOMED":   "custo",       # custo médio (principal)
+    "MAP_ULTCUSTO":   "custo_ult",   # custo mais recente (fallback)
+    "MAP_PRECOVENDA": "preco_venda",
+    "MAP_EMPRESA":    "empresa",
+    "MAP_UN":         "unidade",
+    "MAP_EMBALAGEM":  "embalagem",
+}
+
+# Identificação das empresas no campo MAP_EMPRESA
+EMPRESA_KING = "LLE KING"
+EMPRESA_PISA = "LLE PISA"
+
+def load_mapao() -> pd.DataFrame | None:
+    """Lê o MAPÃO .xls e retorna DataFrame normalizado."""
+    path = MAPAO_FILE
+    if not Path(path).exists():
+        return None
+    try:
+        df = pd.read_excel(path, engine="xlrd", header=0)
+    except Exception as e:
+        st.error(f"Erro ao ler o arquivo: {e}")
+        return None
+
+    # Renomeia apenas as colunas que existem
+    rename = {k: v for k, v in COL_MAP.items() if k in df.columns}
+    df = df.rename(columns=rename)
+
+    # Garante coluna custo: usa custo médio, fallback para custo mais recente
+    if "custo" not in df.columns and "custo_ult" in df.columns:
+        df["custo"] = df["custo_ult"]
+    elif "custo" in df.columns and "custo_ult" in df.columns:
+        df["custo"] = df["custo"].fillna(df["custo_ult"])
+
+    # Converte numéricos
+    for col in ["custo", "preco_venda"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    # Normaliza empresa (remove espaços extras, upper)
+    if "empresa" in df.columns:
+        df["empresa"] = df["empresa"].astype(str).str.strip().str.upper()
+
+    return df
+
+def filtrar_tabela(df: pd.DataFrame, tabela: str) -> pd.DataFrame:
+    """Filtra o MAPÃO pela empresa selecionada."""
+    if df is None or "empresa" not in df.columns:
+        return pd.DataFrame()
+    if tabela == "King":
+        return df[df["empresa"] == EMPRESA_KING.upper()].copy().reset_index(drop=True)
+    else:
+        return df[df["empresa"] == EMPRESA_PISA.upper()].copy().reset_index(drop=True)
+
+def calcular_margem(custo: float, preco: float) -> float:
+    if preco and preco > 0:
+        return (preco - custo) / preco * 100
+    return 0.0
+
+def brl(v):
+    return f"R$ {float(v):,.2f}".replace(",","X").replace(".",",").replace("X",".")
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  PÁGINA DE CADASTRO
 # ═══════════════════════════════════════════════════════════════════════════
 def cadastro_page():
     _, col, _ = st.columns([1, 1.4, 1])
@@ -314,8 +295,7 @@ def cadastro_page():
             st.markdown(
                 f'<div class="cadastro-logo">'
                 f'<img src="data:image/png;base64,{LOGO_B64}" style="max-width:180px;width:100%;background:{AZUL_ESC};padding:12px 18px;border-radius:8px;" />'
-                f'</div>',
-                unsafe_allow_html=True,
+                f'</div>', unsafe_allow_html=True,
             )
         st.markdown(f'<h3 style="color:{AZUL_ESC};margin:0 0 4px;">Criar credencial de acesso</h3>', unsafe_allow_html=True)
         st.markdown('<p style="color:#666;font-size:13px;margin-bottom:20px;">Sistema de Orçamentos — Grupo LLE</p>', unsafe_allow_html=True)
@@ -337,9 +317,9 @@ def cadastro_page():
 
         if gerar:
             erros = []
-            if not novo_user.strip():         erros.append("Informe um nome de usuário.")
-            if len(nova_senha) < 6:           erros.append("A senha precisa ter pelo menos 6 caracteres.")
-            if nova_senha != confirma:        erros.append("As senhas não coincidem.")
+            if not novo_user.strip():  erros.append("Informe um nome de usuário.")
+            if len(nova_senha) < 6:    erros.append("A senha precisa ter pelo menos 6 caracteres.")
+            if nova_senha != confirma: erros.append("As senhas não coincidem.")
             if erros:
                 for e in erros: st.error(e)
             else:
@@ -349,17 +329,16 @@ def cadastro_page():
                 st.code(f'[users]\n{novo_user.strip()} = "{h}"', language="toml")
                 st.markdown("""
                 <div class="steps-box">
-                    <b>Para múltiplos usuários</b>, acumule no mesmo bloco:<br>
+                    Para múltiplos usuários, acumule no mesmo bloco:<br>
                     <code>[users]<br>joao = "hash_joao"<br>maria = "hash_maria"</code>
                 </div>
                 """, unsafe_allow_html=True)
-                st.info("🔒 O hash é calculado só no seu navegador. A senha nunca é armazenada.", icon="🔒")
+                st.info("🔒 O hash é calculado só no servidor. A senha nunca é armazenada.", icon="🔒")
 
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("← Voltar para login", use_container_width=True):
             st.session_state.pagina = "login"
             st.rerun()
-
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -369,20 +348,12 @@ def login_page():
     _, col, _ = st.columns([1, 1.1, 1])
     with col:
         st.markdown("<br>", unsafe_allow_html=True)
-        # Topo azul com logo
         if LOGO_B64:
             st.markdown(
                 f'<div class="login-top">'
                 f'<img src="data:image/png;base64,{LOGO_B64}" style="max-width:210px;width:100%;" />'
-                f'</div>',
-                unsafe_allow_html=True,
+                f'</div>', unsafe_allow_html=True,
             )
-        else:
-            st.markdown(
-                f'<div class="login-top"><span style="color:#fff;font-size:22px;font-weight:700;">GRUPO LLE</span></div>',
-                unsafe_allow_html=True,
-            )
-
         st.markdown('<div class="login-body">', unsafe_allow_html=True)
         st.markdown('<p class="login-sub">Sistema de Orçamentos</p>', unsafe_allow_html=True)
 
@@ -408,66 +379,15 @@ def login_page():
         if st.button("Criar credencial / Gerar hash", use_container_width=True):
             st.session_state.pagina = "cadastro"
             st.rerun()
-
         st.markdown('</div>', unsafe_allow_html=True)
-
-# ═══════════════════════════════════════════════════════════════════════════
-#  HELPERS DE TABELA
-# ═══════════════════════════════════════════════════════════════════════════
-TABELA_FILES = {
-    "King": "tabelas/tabela_king.xlsx",
-    "Pisa": "tabelas/tabela_pisa.xlsx",
-}
-
-REQUIRED_COLS = {
-    "codigo":      ["codigo", "cod", "code", "sku"],
-    "descricao":   ["descricao", "produto", "description", "nome", "item"],
-    "marca":       ["marca", "brand", "fabricante"],
-    "custo":       ["custo", "preco_custo", "cost", "valor_custo", "preco custo"],
-    "preco_venda": ["preco_venda", "preco", "venda", "price", "valor_venda", "preco venda"],
-}
-
-def normalize_col(df: pd.DataFrame) -> pd.DataFrame:
-    rename = {}
-    cols_lower = {c.lower().strip().replace(" ", "_"): c for c in df.columns}
-    for std, aliases in REQUIRED_COLS.items():
-        for alias in aliases:
-            if alias in cols_lower:
-                rename[cols_lower[alias]] = std
-                break
-    return df.rename(columns=rename)
-
-def load_tabela(tabela: str):
-    path = TABELA_FILES.get(tabela)
-    if not path or not Path(path).exists():
-        return None
-    df = pd.read_excel(path, dtype=str)
-    df = normalize_col(df)
-    for col in ["custo", "preco_venda"]:
-        if col in df.columns:
-            df[col] = (
-                df[col]
-                .str.replace(r"[R$\s]", "", regex=True)
-                .str.replace(",", ".", regex=False)
-            )
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-    return df
-
-def calcular_margem(custo: float, preco: float) -> float:
-    if preco and preco > 0:
-        return (preco - custo) / preco * 100
-    return 0.0
-
-def brl(v):
-    return f"R$ {float(v):,.2f}".replace(",","X").replace(".",",").replace("X",".")
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  APP PRINCIPAL
 # ═══════════════════════════════════════════════════════════════════════════
 def main_app():
     # ── Header ──────────────────────────────────────────────────────────────
-    col_tabela_sel, col_user, col_logout = st.columns([6, 2, 1])
-    with col_tabela_sel:
+    col_hdr, col_user, col_logout = st.columns([7, 2, 1])
+    with col_hdr:
         page_header("Sistema de Orçamentos", "Grupo LLE")
     with col_user:
         st.markdown(
@@ -481,39 +401,94 @@ def main_app():
                 del st.session_state[k]
             st.rerun()
 
-    # Seleção de tabela
-    tabela_escolha = st.radio(
-        "Tabela de preços",
-        ["King", "Pisa"],
-        horizontal=True,
-        key="tabela_radio",
-    )
+    # ── Upload do MAPÃO ──────────────────────────────────────────────────────
+    df_mapao = st.session_state.get("df_mapao")
+
+    if df_mapao is None:
+        if Path(MAPAO_FILE).exists():
+            df_mapao = load_mapao()
+            st.session_state.df_mapao = df_mapao
+        else:
+            st.warning("📂 Nenhum MAPÃO carregado. Faça o upload abaixo.")
+            uploaded = st.file_uploader(
+                "Upload do MAPÃO (.xls ou .xlsx)", type=["xls", "xlsx"], key="upload_mapao"
+            )
+            if uploaded:
+                Path("tabelas").mkdir(exist_ok=True)
+                # Detecta extensão e salva
+                ext = Path(uploaded.name).suffix.lower()
+                dest = f"tabelas/mapao{ext}"
+                # Atualiza constante dinamicamente
+                global MAPAO_FILE
+                MAPAO_FILE = dest
+                with open(dest, "wb") as fh:
+                    fh.write(uploaded.read())
+                df_mapao = load_mapao()
+                if df_mapao is not None:
+                    st.session_state.df_mapao = df_mapao
+                    st.success(f"✅ MAPÃO carregado! {len(df_mapao):,} produtos.")
+                    st.rerun()
+                else:
+                    st.error("Não foi possível ler o arquivo. Verifique o formato.")
+            return
+
+    # Quantas empresas tem no arquivo
+    empresas_no_arquivo = df_mapao["empresa"].unique().tolist() if "empresa" in df_mapao.columns else []
+
+    # ── Seleção de tabela ────────────────────────────────────────────────────
+    col_tab, col_info = st.columns([4, 6])
+    with col_tab:
+        tabela_escolha = st.radio(
+            "Tabela de preços",
+            ["King", "Pisa"],
+            horizontal=True,
+            key="tabela_radio",
+        )
+    with col_info:
+        df_tab = filtrar_tabela(df_mapao, tabela_escolha)
+        n_prod = len(df_tab)
+        empresa_label = EMPRESA_KING if tabela_escolha == "King" else EMPRESA_PISA
+        if n_prod > 0:
+            st.markdown(
+                f'<div style="margin-top:.6rem;padding:8px 14px;background:#edf7f1;border-left:4px solid {VERDE};border-radius:7px;font-size:13px;color:#0a5c31;">'
+                f'✅ <b>{empresa_label}</b> — <b>{n_prod:,}</b> produtos carregados</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                f'<div style="margin-top:.6rem;padding:8px 14px;background:#fdf0f0;border-left:4px solid #dc3545;border-radius:7px;font-size:13px;color:#8b1a1a;">'
+                f'⚠️ Nenhum produto encontrado para <b>{empresa_label}</b> neste arquivo.<br>'
+                f'Empresas disponíveis: {", ".join(empresas_no_arquivo)}</div>',
+                unsafe_allow_html=True,
+            )
+
     if tabela_escolha != st.session_state.tabela:
         st.session_state.tabela          = tabela_escolha
-        st.session_state.df_tabela       = load_tabela(tabela_escolha)
         st.session_state.itens_orcamento = []
 
-    st.markdown("---")
-    df = st.session_state.df_tabela
-
-    # ── Upload se tabela não existir ─────────────────────────────────────────
-    if df is None:
-        tabela_atual = st.session_state.tabela or "King"
-        st.warning(f"Tabela **{tabela_atual}** não encontrada. Faça o upload abaixo.")
-        uploaded = st.file_uploader(
-            f"Upload tabela {tabela_atual} (.xlsx)",
-            type=["xlsx"],
-            key="upload_tabela",
+    # Botão para trocar o MAPÃO
+    with st.expander("🔄 Trocar MAPÃO"):
+        novo_upload = st.file_uploader(
+            "Novo MAPÃO (.xls ou .xlsx)", type=["xls", "xlsx"], key="reupload_mapao"
         )
-        if uploaded:
+        if novo_upload:
             Path("tabelas").mkdir(exist_ok=True)
-            dest = TABELA_FILES[tabela_atual]
+            ext  = Path(novo_upload.name).suffix.lower()
+            dest = f"tabelas/mapao{ext}"
+            MAPAO_FILE = dest
             with open(dest, "wb") as fh:
-                fh.write(uploaded.read())
-            st.session_state.df_tabela = load_tabela(tabela_atual)
-            st.success("Tabela carregada com sucesso!")
-            st.rerun()
+                fh.write(novo_upload.read())
+            novo_df = load_mapao()
+            if novo_df is not None:
+                st.session_state.df_mapao        = novo_df
+                st.session_state.itens_orcamento = []
+                st.success(f"✅ MAPÃO atualizado! {len(novo_df):,} produtos.")
+                st.rerun()
+
+    if n_prod == 0:
         return
+
+    st.markdown("---")
 
     # ── Busca de produto ──────────────────────────────────────────────────────
     st.markdown('<span class="section-title">🔍 Adicionar Produto</span>', unsafe_allow_html=True)
@@ -521,18 +496,18 @@ def main_app():
 
     c1, c2, c3 = st.columns([3, 2, 1])
     with c1:
-        busca = st.text_input("Código ou nome do produto", placeholder="Ex: 1234 ou Parafuso...")
+        busca = st.text_input("Código ou nome do produto", placeholder="Ex: 39394 ou ABRAÇADEIRA...")
     with c2:
         marcas = (
-            ["Todas"] + sorted(df["marca"].dropna().unique().tolist())
-            if "marca" in df.columns else ["Todas"]
+            ["Todas"] + sorted(df_tab["marca"].dropna().unique().tolist())
+            if "marca" in df_tab.columns else ["Todas"]
         )
         marca_filtro = st.selectbox("Filtrar por marca", marcas)
     with c3:
         qtd = st.number_input("Quantidade", min_value=1, value=1, step=1)
 
-    df_filtrado = df.copy()
-    if marca_filtro != "Todas" and "marca" in df.columns:
+    df_filtrado = df_tab.copy()
+    if marca_filtro != "Todas" and "marca" in df_filtrado.columns:
         df_filtrado = df_filtrado[df_filtrado["marca"] == marca_filtro]
     if busca:
         mask = pd.Series([False] * len(df_filtrado), index=df_filtrado.index)
@@ -545,29 +520,31 @@ def main_app():
         if df_filtrado.empty:
             st.info("Nenhum produto encontrado.")
         else:
-            cols_show = [c for c in ["codigo", "descricao", "marca"] if c in df_filtrado.columns]
+            cols_show = [c for c in ["codigo", "descricao", "marca", "unidade", "embalagem"] if c in df_filtrado.columns]
             st.dataframe(
-                df_filtrado[cols_show].head(20).reset_index(drop=True),
-                use_container_width=True,
-                hide_index=True,
+                df_filtrado[cols_show].head(30).reset_index(drop=True),
+                use_container_width=True, hide_index=True,
             )
             cod_options = df_filtrado["codigo"].astype(str).tolist() if "codigo" in df_filtrado.columns else []
             cod_sel = st.selectbox("Selecionar produto pelo código", options=cod_options, key="cod_sel")
 
             if st.button("➕ Adicionar ao orçamento", type="primary", key="add_btn"):
                 row = df_filtrado[df_filtrado["codigo"].astype(str) == cod_sel].iloc[0]
+                custo = float(row.get("custo", 0) or 0)
+                preco = float(row.get("preco_venda", 0) or 0)
                 item = {
                     "codigo":        str(row.get("codigo", "")),
                     "descricao":     str(row.get("descricao", "")),
                     "marca":         str(row.get("marca", "")) if "marca" in row else "",
-                    "custo_unit":    float(row.get("custo", 0) or 0),
-                    "preco_unit":    float(row.get("preco_venda", 0) or 0),
+                    "unidade":       str(row.get("unidade", "")) if "unidade" in row else "",
+                    "custo_unit":    custo,
+                    "preco_unit":    preco,
                     "qtd":           int(qtd),
                     "desc_item_pct": 0.0,
                     "desc_item_rs":  0.0,
                 }
                 st.session_state.itens_orcamento.append(item)
-                st.success(f"✅ '{item['descricao']}' adicionado!")
+                st.success(f"✅ '{item['descricao'][:50]}' adicionado!")
                 st.rerun()
 
     # ── Orçamento ────────────────────────────────────────────────────────────
@@ -579,7 +556,6 @@ def main_app():
         st.info("Nenhum item adicionado ainda.")
         return
 
-    # Desconto geral
     with st.expander("💸 Desconto Geral (aplica em todos os itens)"):
         dg1, dg2 = st.columns(2)
         with dg1:
@@ -607,8 +583,8 @@ def main_app():
             ca, cb, cc, cd, ce, cf = st.columns([3, 1, 2, 2, 2, 0.5])
 
             with ca:
-                st.markdown(f"**{item['descricao']}**")
-                st.caption(f"Cód: {item['codigo']}  ·  {item['marca']}")
+                st.markdown(f"**{item['descricao'][:60]}**")
+                st.caption(f"Cód: {item['codigo']}  ·  {item['marca']}  ·  {item.get('unidade','')}")
             with cb:
                 item["qtd"] = st.number_input(
                     "Qtd", min_value=1, value=item["qtd"],
@@ -680,12 +656,9 @@ def main_app():
     with r1:
         st.metric("Total tabela", brl(total_venda_original))
     with r2:
-        st.metric(
-            "Total com descontos",
-            brl(total_venda_final),
-            delta=f"R$ {total_venda_final - total_venda_original:,.2f}".replace(",","X").replace(".",",").replace("X","."),
-            delta_color="inverse",
-        )
+        diff = total_venda_final - total_venda_original
+        st.metric("Total com descontos", brl(total_venda_final),
+                  delta=brl(diff), delta_color="inverse")
     with r3:
         st.metric("Margem tabela", f"{margem_orig_geral:.1f}%")
     with r4:
