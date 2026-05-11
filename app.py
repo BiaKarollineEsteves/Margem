@@ -481,56 +481,183 @@ def main_app():
         return
 
     st.markdown("---")
-
-    # ── Busca de produto ──────────────────────────────────────────────────────
-    st.markdown('<span class="section-title">🔍 Adicionar Produto</span>', unsafe_allow_html=True)
+    st.markdown('<span class="section-title">➕ Adicionar Produtos</span>', unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
-    c1, c2, c3 = st.columns([3, 2, 1])
-    with c1:
-        busca = st.text_input("Código ou nome do produto", placeholder="Ex: 39394 ou ABRAÇADEIRA...")
-    with c2:
-        marcas = ["Todas"] + sorted(df_tab["marca"].dropna().unique().tolist()) if "marca" in df_tab.columns else ["Todas"]
-        marca_filtro = st.selectbox("Filtrar por marca", marcas)
-    with c3:
-        qtd = st.number_input("Quantidade", min_value=1, value=1, step=1)
+    aba_manual, aba_excel = st.tabs(["🔍 Busca manual", "📥 Importar pedido (Excel)"])
 
-    df_filtrado = df_tab.copy()
-    if marca_filtro != "Todas" and "marca" in df_filtrado.columns:
-        df_filtrado = df_filtrado[df_filtrado["marca"] == marca_filtro]
-    if busca:
-        mask = pd.Series([False] * len(df_filtrado), index=df_filtrado.index)
-        for col in ["codigo", "descricao"]:
-            if col in df_filtrado.columns:
-                mask |= df_filtrado[col].astype(str).str.lower().str.contains(busca.lower(), na=False)
-        df_filtrado = df_filtrado[mask]
+    with aba_manual:
+        c1, c2, c3 = st.columns([3, 2, 1])
+        with c1:
+            busca = st.text_input("Código ou nome do produto", placeholder="Ex: 39394 ou ABRAÇADEIRA...", key="busca_manual")
+        with c2:
+            marcas = ["Todas"] + sorted(df_tab["marca"].dropna().unique().tolist()) if "marca" in df_tab.columns else ["Todas"]
+            marca_filtro = st.selectbox("Filtrar por marca", marcas)
+        with c3:
+            qtd = st.number_input("Quantidade", min_value=1, value=1, step=1)
 
-    if busca or marca_filtro != "Todas":
-        if df_filtrado.empty:
-            st.info("Nenhum produto encontrado.")
+        df_filtrado = df_tab.copy()
+        if marca_filtro != "Todas" and "marca" in df_filtrado.columns:
+            df_filtrado = df_filtrado[df_filtrado["marca"] == marca_filtro]
+        if busca.strip():
+            mask = pd.Series([False] * len(df_filtrado), index=df_filtrado.index)
+            for col in ["codigo", "descricao"]:
+                if col in df_filtrado.columns:
+                    mask |= df_filtrado[col].astype(str).str.lower().str.contains(busca.strip().lower(), na=False)
+            df_filtrado = df_filtrado[mask]
+
+        if busca.strip() or marca_filtro != "Todas":
+            if df_filtrado.empty:
+                st.info("Nenhum produto encontrado.")
+            else:
+                cols_show = [c for c in ["codigo", "descricao", "marca", "unidade", "embalagem"] if c in df_filtrado.columns]
+                st.dataframe(
+                    df_filtrado[cols_show].head(50).reset_index(drop=True),
+                    use_container_width=True, hide_index=True,
+                    height=min(400, 35 * min(len(df_filtrado), 50) + 38),
+                )
+                st.caption(f"{len(df_filtrado)} produto(s) — mostrando até 50")
+
+                cod_options = df_filtrado["codigo"].astype(str).tolist() if "codigo" in df_filtrado.columns else []
+
+                def fmt_cod(c):
+                    match = df_filtrado[df_filtrado["codigo"].astype(str) == c]
+                    desc  = match["descricao"].values[0][:55] if not match.empty and "descricao" in match.columns else ""
+                    return f"{c} — {desc}"
+
+                cod_sel = st.selectbox("Selecionar produto", options=cod_options, format_func=fmt_cod, key="cod_sel")
+
+                if st.button("➕ Adicionar ao orçamento", type="primary", key="add_btn"):
+                    row = df_filtrado[df_filtrado["codigo"].astype(str) == cod_sel].iloc[0]
+                    item = {
+                        "codigo":        str(row.get("codigo", "")),
+                        "descricao":     str(row.get("descricao", "")),
+                        "marca":         str(row.get("marca", "")) if "marca" in row else "",
+                        "unidade":       str(row.get("unidade", "")) if "unidade" in row else "",
+                        "custo_unit":    float(row.get("custo", 0) or 0),
+                        "preco_unit":    float(row.get("preco_venda", 0) or 0),
+                        "qtd":           int(qtd),
+                        "desc_item_pct": 0.0,
+                        "desc_item_rs":  0.0,
+                    }
+                    st.session_state.itens_orcamento.append(item)
+                    st.success(f"\u2705 **{item['descricao'][:55]}** adicionado! Qtd: {item['qtd']}")
         else:
-            cols_show = [c for c in ["codigo", "descricao", "marca", "unidade", "embalagem"] if c in df_filtrado.columns]
-            st.dataframe(df_filtrado[cols_show].head(30).reset_index(drop=True), use_container_width=True, hide_index=True)
+            st.caption("Digite um código, nome ou selecione uma marca para buscar.")
 
-            cod_options = df_filtrado["codigo"].astype(str).tolist() if "codigo" in df_filtrado.columns else []
-            cod_sel = st.selectbox("Selecionar produto pelo código", options=cod_options, key="cod_sel")
+    # ── ABA 2: Importar Excel ─────────────────────────────────────────────────
+    with aba_excel:
+        import io
+        st.markdown('''
+        <div class="info-box">
+            <b>Formato esperado do Excel (colunas obrigatórias):</b><br>
+            <code>codigo</code> &nbsp;·&nbsp; <code>qtd</code> &nbsp;·&nbsp; <code>preco_venda</code><br><br>
+            O sistema cruza pelo código com o MAPÃO e puxa o custo automaticamente.<br>
+            O preço de venda do Excel é o preço negociado com o cliente.
+        </div>
+        ''', unsafe_allow_html=True)
 
-            if st.button("➕ Adicionar ao orçamento", type="primary", key="add_btn"):
-                row = df_filtrado[df_filtrado["codigo"].astype(str) == cod_sel].iloc[0]
-                item = {
-                    "codigo":        str(row.get("codigo", "")),
-                    "descricao":     str(row.get("descricao", "")),
-                    "marca":         str(row.get("marca", "")) if "marca" in row else "",
-                    "unidade":       str(row.get("unidade", "")) if "unidade" in row else "",
-                    "custo_unit":    float(row.get("custo", 0) or 0),
-                    "preco_unit":    float(row.get("preco_venda", 0) or 0),
-                    "qtd":           int(qtd),
-                    "desc_item_pct": 0.0,
-                    "desc_item_rs":  0.0,
-                }
-                st.session_state.itens_orcamento.append(item)
-                st.success(f"✅ '{item['descricao'][:55]}' adicionado!")
-                st.rerun()
+        modelo_df = pd.DataFrame([
+            {"codigo": "39394", "qtd": 10, "preco_venda": 1.50},
+            {"codigo": "39395", "qtd": 5,  "preco_venda": 2.00},
+        ])
+        buf = io.BytesIO()
+        modelo_df.to_excel(buf, index=False)
+        st.download_button("⬇️ Baixar modelo Excel", data=buf.getvalue(),
+            file_name="modelo_pedido.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+        pedido_upload = st.file_uploader("Upload do pedido (.xlsx ou .xls)", type=["xlsx", "xls"], key="upload_pedido")
+
+        if pedido_upload:
+            try:
+                ext_p    = Path(pedido_upload.name).suffix.lower()
+                engine_p = "xlrd" if ext_p == ".xls" else "openpyxl"
+                df_pedido = pd.read_excel(pedido_upload, engine=engine_p, dtype=str)
+                df_pedido.columns = [c.lower().strip().replace(" ", "_") for c in df_pedido.columns]
+
+                alias_cod   = ["codigo", "cod", "code", "sku", "codprod", "map_codprod"]
+                alias_qtd   = ["qtd", "quantidade", "qty", "quantity"]
+                alias_preco = ["preco_venda", "preco", "venda", "price", "valor", "valor_venda", "preco_cliente"]
+
+                def find_col(df, aliases):
+                    for a in aliases:
+                        if a in df.columns:
+                            return a
+                    return None
+
+                col_cod   = find_col(df_pedido, alias_cod)
+                col_qtd   = find_col(df_pedido, alias_qtd)
+                col_preco = find_col(df_pedido, alias_preco)
+
+                erros_col = []
+                if not col_cod:   erros_col.append("código (`codigo`, `cod`, `sku`…)")
+                if not col_qtd:   erros_col.append("quantidade (`qtd`, `quantidade`…)")
+                if not col_preco: erros_col.append("preço de venda (`preco_venda`, `preco`…)")
+
+                if erros_col:
+                    st.error(f"Coluna(s) não encontrada(s): {', '.join(erros_col)}\n\nColunas no arquivo: `{list(df_pedido.columns)}`")
+                else:
+                    df_pedido["_cod"]   = df_pedido[col_cod].astype(str).str.strip()
+                    df_pedido["_qtd"]   = pd.to_numeric(df_pedido[col_qtd], errors="coerce").fillna(1).astype(int)
+                    df_pedido["_preco"] = pd.to_numeric(
+                        df_pedido[col_preco].astype(str)
+                            .str.replace(r"[R$\s]", "", regex=True)
+                            .str.replace(",", ".", regex=False),
+                        errors="coerce").fillna(0.0)
+                    df_pedido = df_pedido[df_pedido["_cod"].notna() & (df_pedido["_cod"] != "")].copy()
+
+                    df_mapao_idx = df_tab.copy()
+                    df_mapao_idx["_cod_idx"] = df_mapao_idx["codigo"].astype(str).str.strip()
+
+                    encontrados     = []
+                    nao_encontrados = []
+
+                    for _, row in df_pedido.iterrows():
+                        cod = row["_cod"]
+                        match = df_mapao_idx[df_mapao_idx["_cod_idx"] == cod]
+                        if match.empty:
+                            nao_encontrados.append(cod)
+                            continue
+                        m = match.iloc[0]
+                        encontrados.append({
+                            "codigo":        cod,
+                            "descricao":     str(m.get("descricao", "")),
+                            "marca":         str(m.get("marca", "")) if "marca" in m else "",
+                            "unidade":       str(m.get("unidade", "")) if "unidade" in m else "",
+                            "custo_unit":    float(m.get("custo", 0) or 0),
+                            "preco_unit":    float(row["_preco"]),
+                            "qtd":           int(row["_qtd"]),
+                            "desc_item_pct": 0.0,
+                            "desc_item_rs":  0.0,
+                        })
+
+                    if encontrados:
+                        st.success(f"✅ {len(encontrados)} produto(s) encontrado(s) no MAPÃO.")
+                        preview_rows = []
+                        for it in encontrados:
+                            custo_t = it["custo_unit"] * it["qtd"]
+                            preco_t = it["preco_unit"] * it["qtd"]
+                            preview_rows.append({
+                                "Código":      it["codigo"],
+                                "Produto":     it["descricao"][:50],
+                                "Qtd":         it["qtd"],
+                                "Preço unit.": brl(it["preco_unit"]),
+                                "Total":       brl(preco_t),
+                                "Margem":      f"{calcular_margem(custo_t, preco_t):.1f}%",
+                            })
+                        st.dataframe(pd.DataFrame(preview_rows), use_container_width=True, hide_index=True)
+
+                    if nao_encontrados:
+                        st.warning(f"⚠️ {len(nao_encontrados)} código(s) não encontrado(s): `{', '.join(nao_encontrados)}`")
+
+                    if encontrados:
+                        if st.button(f"📥 Carregar {len(encontrados)} produto(s) no orçamento", type="primary", key="confirmar_pedido"):
+                            st.session_state.itens_orcamento = encontrados
+                            st.rerun()
+
+            except Exception as e:
+                st.error(f"Erro ao processar o arquivo: {e}")
 
     # ── Orçamento ────────────────────────────────────────────────────────────
     st.markdown('<span class="section-title">🧾 Orçamento</span>', unsafe_allow_html=True)
@@ -571,18 +698,18 @@ def main_app():
                 st.markdown(f"**{item['descricao'][:60]}**")
                 st.caption(f"Cód: {item['codigo']}  ·  {item['marca']}  ·  {item.get('unidade','')}")
             with cb:
-                item["qtd"] = st.number_input("Qtd", min_value=1, value=item["qtd"], key=f"qtd_{i}", label_visibility="collapsed")
+                item["qtd"] = st.number_input("Qtd", min_value=1, value=item["qtd"], key=f"qtd_{i}")
             with cc:
                 item["desc_item_pct"] = st.number_input(
-                    "Desc %", min_value=0.0, max_value=100.0,
+                    "Desconto (%)", min_value=0.0, max_value=100.0,
                     value=float(item["desc_item_pct"]), step=0.5, format="%.2f",
-                    key=f"dpct_{i}", label_visibility="collapsed",
+                    key=f"dpct_{i}",
                 )
             with cd:
                 item["desc_item_rs"] = st.number_input(
-                    "Desc R$", min_value=0.0,
+                    "Desconto (R$)", min_value=0.0,
                     value=float(item["desc_item_rs"]), step=0.5, format="%.2f",
-                    key=f"drs_{i}", label_visibility="collapsed",
+                    key=f"drs_{i}",
                 )
             with ce:
                 custo_total = item["custo_unit"] * item["qtd"]
