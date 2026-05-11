@@ -6,7 +6,7 @@ import base64
 
 # ─── Page config ────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Grupo LLE — Orçamentos",
+    page_title="OrçaPro — Grupo LLE",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -53,7 +53,6 @@ html, body, [data-testid="stAppViewContainer"] {{
 #MainMenu {{ visibility:hidden; }}
 footer    {{ visibility:hidden; }}
 .block-container {{ padding: 1.5rem 2.5rem !important; max-width: 1300px !important; }}
-
 h1, h2, h3 {{ color: {AZUL_ESC} !important; font-weight: 700 !important; }}
 
 .hbar {{
@@ -63,7 +62,6 @@ h1, h2, h3 {{ color: {AZUL_ESC} !important; font-weight: 700 !important; }}
 .hbar-title {{ color: #fff; font-size: 20px; font-weight: 700; }}
 .hbar-sub   {{ color: {AMARELO}; font-size: 12px; margin-top: 2px; }}
 
-.login-outer {{ max-width: 420px; margin: 6vh auto 0; }}
 .login-top {{
     background: {AZUL_ESC}; padding: 32px 28px 24px;
     border-radius: 14px 14px 0 0; text-align: center;
@@ -200,7 +198,8 @@ def init_session():
         "pagina":             "login",
         "usuario_logado":     "",
         "tabela":             None,
-        "df_tabela":          None,
+        "df_mapao":           None,
+        "mapao_path":         None,   # ← caminho do arquivo salvo (sem global)
         "itens_orcamento":    [],
         "desconto_geral_pct": 0.0,
         "desconto_geral_rs":  0.0,
@@ -213,68 +212,65 @@ init_session()
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  LEITURA DO MAPÃO
-#  Formato: arquivo .xls gerado pelo sistema interno
-#  Coluna MAP_EMPRESA: "LLE PISA" → tabela Pisa | "LLE KING" → tabela King
 # ═══════════════════════════════════════════════════════════════════════════
-MAPAO_FILE = "tabelas/mapao.xls"
-
-# Mapeamento de colunas do MAPÃO → nomes internos
 COL_MAP = {
     "MAP_CODPROD":    "codigo",
     "MAP_DESCRPROD":  "descricao",
     "MAP_MARCA":      "marca",
-    "MAP_CUSTOMED":   "custo",       # custo médio (principal)
-    "MAP_ULTCUSTO":   "custo_ult",   # custo mais recente (fallback)
+    "MAP_CUSTOMED":   "custo",
+    "MAP_ULTCUSTO":   "custo_ult",
     "MAP_PRECOVENDA": "preco_venda",
     "MAP_EMPRESA":    "empresa",
     "MAP_UN":         "unidade",
     "MAP_EMBALAGEM":  "embalagem",
 }
 
-# Identificação das empresas no campo MAP_EMPRESA
 EMPRESA_KING = "LLE KING"
 EMPRESA_PISA = "LLE PISA"
 
-def load_mapao() -> pd.DataFrame | None:
-    """Lê o MAPÃO .xls e retorna DataFrame normalizado."""
-    path = MAPAO_FILE
+def load_mapao_from_path(path: str) -> pd.DataFrame | None:
+    """Lê o MAPÃO a partir de um caminho e retorna DataFrame normalizado."""
     if not Path(path).exists():
         return None
     try:
-        df = pd.read_excel(path, engine="xlrd", header=0)
+        ext = Path(path).suffix.lower()
+        engine = "xlrd" if ext == ".xls" else "openpyxl"
+        df = pd.read_excel(path, engine=engine, header=0)
     except Exception as e:
         st.error(f"Erro ao ler o arquivo: {e}")
         return None
 
-    # Renomeia apenas as colunas que existem
     rename = {k: v for k, v in COL_MAP.items() if k in df.columns}
     df = df.rename(columns=rename)
 
-    # Garante coluna custo: usa custo médio, fallback para custo mais recente
     if "custo" not in df.columns and "custo_ult" in df.columns:
         df["custo"] = df["custo_ult"]
     elif "custo" in df.columns and "custo_ult" in df.columns:
         df["custo"] = df["custo"].fillna(df["custo_ult"])
 
-    # Converte numéricos
     for col in ["custo", "preco_venda"]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    # Normaliza empresa (remove espaços extras, upper)
     if "empresa" in df.columns:
         df["empresa"] = df["empresa"].astype(str).str.strip().str.upper()
 
     return df
 
 def filtrar_tabela(df: pd.DataFrame, tabela: str) -> pd.DataFrame:
-    """Filtra o MAPÃO pela empresa selecionada."""
     if df is None or "empresa" not in df.columns:
         return pd.DataFrame()
-    if tabela == "King":
-        return df[df["empresa"] == EMPRESA_KING.upper()].copy().reset_index(drop=True)
-    else:
-        return df[df["empresa"] == EMPRESA_PISA.upper()].copy().reset_index(drop=True)
+    empresa = EMPRESA_KING.upper() if tabela == "King" else EMPRESA_PISA.upper()
+    return df[df["empresa"] == empresa].copy().reset_index(drop=True)
+
+def salvar_upload(uploaded_file) -> str:
+    """Salva o arquivo enviado e retorna o caminho."""
+    Path("tabelas").mkdir(exist_ok=True)
+    ext  = Path(uploaded_file.name).suffix.lower()
+    dest = f"tabelas/mapao{ext}"
+    with open(dest, "wb") as fh:
+        fh.write(uploaded_file.read())
+    return dest
 
 def calcular_margem(custo: float, preco: float) -> float:
     if preco and preco > 0:
@@ -294,11 +290,12 @@ def cadastro_page():
         if LOGO_B64:
             st.markdown(
                 f'<div class="cadastro-logo">'
-                f'<img src="data:image/png;base64,{LOGO_B64}" style="max-width:180px;width:100%;background:{AZUL_ESC};padding:12px 18px;border-radius:8px;" />'
-                f'</div>', unsafe_allow_html=True,
+                f'<img src="data:image/png;base64,{LOGO_B64}" style="max-width:180px;width:100%;'
+                f'background:{AZUL_ESC};padding:12px 18px;border-radius:8px;" /></div>',
+                unsafe_allow_html=True,
             )
-        st.markdown(f'<h3 style="color:{AZUL_ESC};margin:0 0 4px;">Criar credencial de acesso</h3>', unsafe_allow_html=True)
-        st.markdown('<p style="color:#666;font-size:13px;margin-bottom:20px;">Sistema de Orçamentos — Grupo LLE</p>', unsafe_allow_html=True)
+        st.markdown(f'<h3 style="color:{AZUL_ESC};margin:0 0 4px;">Criar credencial — OrçaPro</h3>', unsafe_allow_html=True)
+        st.markdown('<p style="color:#666;font-size:13px;margin-bottom:20px;">Grupo LLE · Sistema de Orçamentos</p>', unsafe_allow_html=True)
 
         st.markdown("""
         <div class="info-box">
@@ -333,7 +330,7 @@ def cadastro_page():
                     <code>[users]<br>joao = "hash_joao"<br>maria = "hash_maria"</code>
                 </div>
                 """, unsafe_allow_html=True)
-                st.info("🔒 O hash é calculado só no servidor. A senha nunca é armazenada.", icon="🔒")
+                st.info("🔒 A senha nunca é armazenada — apenas o hash é gerado.", icon="🔒")
 
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("← Voltar para login", use_container_width=True):
@@ -354,8 +351,11 @@ def login_page():
                 f'<img src="data:image/png;base64,{LOGO_B64}" style="max-width:210px;width:100%;" />'
                 f'</div>', unsafe_allow_html=True,
             )
+        else:
+            st.markdown(f'<div class="login-top"><span style="color:#fff;font-size:22px;font-weight:700;">GRUPO LLE</span></div>', unsafe_allow_html=True)
+
         st.markdown('<div class="login-body">', unsafe_allow_html=True)
-        st.markdown('<p class="login-sub">Sistema de Orçamentos</p>', unsafe_allow_html=True)
+        st.markdown('<p class="login-sub">OrçaPro · Sistema de Orçamentos</p>', unsafe_allow_html=True)
 
         if not has_any_user_configured():
             st.warning("Nenhum usuário configurado ainda. Crie sua credencial primeiro.")
@@ -388,12 +388,9 @@ def main_app():
     # ── Header ──────────────────────────────────────────────────────────────
     col_hdr, col_user, col_logout = st.columns([7, 2, 1])
     with col_hdr:
-        page_header("Sistema de Orçamentos", "Grupo LLE")
+        page_header("OrçaPro", "Grupo LLE · Sistema de Orçamentos")
     with col_user:
-        st.markdown(
-            f'<p class="usuario-tag">👤 {st.session_state.usuario_logado}</p>',
-            unsafe_allow_html=True,
-        )
+        st.markdown(f'<p class="usuario-tag">👤 {st.session_state.usuario_logado}</p>', unsafe_allow_html=True)
     with col_logout:
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("Sair", use_container_width=True):
@@ -401,89 +398,84 @@ def main_app():
                 del st.session_state[k]
             st.rerun()
 
-    # ── Upload do MAPÃO ──────────────────────────────────────────────────────
-    df_mapao = st.session_state.get("df_mapao")
+    # ── Carregamento do MAPÃO ────────────────────────────────────────────────
+    # Tenta carregar da session ou do disco (arquivo já salvo anteriormente)
+    df_mapao = st.session_state.df_mapao
+    mapao_path = st.session_state.mapao_path
+
+    # Se ainda não está na session, tenta achar no disco
+    if df_mapao is None:
+        for candidate in ["tabelas/mapao.xls", "tabelas/mapao.xlsx"]:
+            if Path(candidate).exists():
+                mapao_path = candidate
+                df_mapao   = load_mapao_from_path(candidate)
+                if df_mapao is not None:
+                    st.session_state.df_mapao  = df_mapao
+                    st.session_state.mapao_path = candidate
+                break
 
     if df_mapao is None:
-        if Path(MAPAO_FILE).exists():
-            df_mapao = load_mapao()
-            st.session_state.df_mapao = df_mapao
-        else:
-            st.warning("📂 Nenhum MAPÃO carregado. Faça o upload abaixo.")
-            uploaded = st.file_uploader(
-                "Upload do MAPÃO (.xls ou .xlsx)", type=["xls", "xlsx"], key="upload_mapao"
-            )
-            if uploaded:
-                Path("tabelas").mkdir(exist_ok=True)
-                # Detecta extensão e salva
-                ext = Path(uploaded.name).suffix.lower()
-                dest = f"tabelas/mapao{ext}"
-                # Atualiza constante dinamicamente
-                global MAPAO_FILE
-                MAPAO_FILE = dest
-                with open(dest, "wb") as fh:
-                    fh.write(uploaded.read())
-                df_mapao = load_mapao()
-                if df_mapao is not None:
-                    st.session_state.df_mapao = df_mapao
-                    st.success(f"✅ MAPÃO carregado! {len(df_mapao):,} produtos.")
-                    st.rerun()
-                else:
-                    st.error("Não foi possível ler o arquivo. Verifique o formato.")
-            return
-
-    # Quantas empresas tem no arquivo
-    empresas_no_arquivo = df_mapao["empresa"].unique().tolist() if "empresa" in df_mapao.columns else []
+        st.warning("📂 Nenhum MAPÃO carregado. Faça o upload abaixo.")
+        uploaded = st.file_uploader(
+            "Upload do MAPÃO (.xls ou .xlsx)", type=["xls", "xlsx"], key="upload_mapao"
+        )
+        if uploaded:
+            dest    = salvar_upload(uploaded)
+            novo_df = load_mapao_from_path(dest)
+            if novo_df is not None:
+                st.session_state.df_mapao   = novo_df
+                st.session_state.mapao_path = dest
+                st.success(f"✅ MAPÃO carregado! {len(novo_df):,} produtos.")
+                st.rerun()
+            else:
+                st.error("Não foi possível ler o arquivo. Verifique o formato.")
+        return
 
     # ── Seleção de tabela ────────────────────────────────────────────────────
     col_tab, col_info = st.columns([4, 6])
     with col_tab:
-        tabela_escolha = st.radio(
-            "Tabela de preços",
-            ["King", "Pisa"],
-            horizontal=True,
-            key="tabela_radio",
-        )
-    with col_info:
-        df_tab = filtrar_tabela(df_mapao, tabela_escolha)
-        n_prod = len(df_tab)
-        empresa_label = EMPRESA_KING if tabela_escolha == "King" else EMPRESA_PISA
-        if n_prod > 0:
-            st.markdown(
-                f'<div style="margin-top:.6rem;padding:8px 14px;background:#edf7f1;border-left:4px solid {VERDE};border-radius:7px;font-size:13px;color:#0a5c31;">'
-                f'✅ <b>{empresa_label}</b> — <b>{n_prod:,}</b> produtos carregados</div>',
-                unsafe_allow_html=True,
-            )
-        else:
-            st.markdown(
-                f'<div style="margin-top:.6rem;padding:8px 14px;background:#fdf0f0;border-left:4px solid #dc3545;border-radius:7px;font-size:13px;color:#8b1a1a;">'
-                f'⚠️ Nenhum produto encontrado para <b>{empresa_label}</b> neste arquivo.<br>'
-                f'Empresas disponíveis: {", ".join(empresas_no_arquivo)}</div>',
-                unsafe_allow_html=True,
-            )
+        tabela_escolha = st.radio("Tabela de preços", ["King", "Pisa"], horizontal=True, key="tabela_radio")
 
     if tabela_escolha != st.session_state.tabela:
         st.session_state.tabela          = tabela_escolha
         st.session_state.itens_orcamento = []
 
-    # Botão para trocar o MAPÃO
+    df_tab = filtrar_tabela(df_mapao, tabela_escolha)
+    n_prod = len(df_tab)
+    empresa_label = EMPRESA_KING if tabela_escolha == "King" else EMPRESA_PISA
+
+    with col_info:
+        if n_prod > 0:
+            st.markdown(
+                f'<div style="margin-top:.6rem;padding:8px 14px;background:#edf7f1;'
+                f'border-left:4px solid {VERDE};border-radius:7px;font-size:13px;color:#0a5c31;">'
+                f'✅ <b>{empresa_label}</b> — <b>{n_prod:,}</b> produtos carregados</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            empresas = df_mapao["empresa"].unique().tolist() if "empresa" in df_mapao.columns else []
+            st.markdown(
+                f'<div style="margin-top:.6rem;padding:8px 14px;background:#fdf0f0;'
+                f'border-left:4px solid #dc3545;border-radius:7px;font-size:13px;color:#8b1a1a;">'
+                f'⚠️ Nenhum produto para <b>{empresa_label}</b>. '
+                f'Disponíveis: {", ".join(empresas)}</div>',
+                unsafe_allow_html=True,
+            )
+
+    # Trocar MAPÃO
     with st.expander("🔄 Trocar MAPÃO"):
-        novo_upload = st.file_uploader(
-            "Novo MAPÃO (.xls ou .xlsx)", type=["xls", "xlsx"], key="reupload_mapao"
-        )
+        novo_upload = st.file_uploader("Novo MAPÃO (.xls ou .xlsx)", type=["xls", "xlsx"], key="reupload_mapao")
         if novo_upload:
-            Path("tabelas").mkdir(exist_ok=True)
-            ext  = Path(novo_upload.name).suffix.lower()
-            dest = f"tabelas/mapao{ext}"
-            MAPAO_FILE = dest
-            with open(dest, "wb") as fh:
-                fh.write(novo_upload.read())
-            novo_df = load_mapao()
+            dest    = salvar_upload(novo_upload)
+            novo_df = load_mapao_from_path(dest)
             if novo_df is not None:
                 st.session_state.df_mapao        = novo_df
+                st.session_state.mapao_path      = dest
                 st.session_state.itens_orcamento = []
                 st.success(f"✅ MAPÃO atualizado! {len(novo_df):,} produtos.")
                 st.rerun()
+            else:
+                st.error("Não foi possível ler o arquivo.")
 
     if n_prod == 0:
         return
@@ -498,10 +490,7 @@ def main_app():
     with c1:
         busca = st.text_input("Código ou nome do produto", placeholder="Ex: 39394 ou ABRAÇADEIRA...")
     with c2:
-        marcas = (
-            ["Todas"] + sorted(df_tab["marca"].dropna().unique().tolist())
-            if "marca" in df_tab.columns else ["Todas"]
-        )
+        marcas = ["Todas"] + sorted(df_tab["marca"].dropna().unique().tolist()) if "marca" in df_tab.columns else ["Todas"]
         marca_filtro = st.selectbox("Filtrar por marca", marcas)
     with c3:
         qtd = st.number_input("Quantidade", min_value=1, value=1, step=1)
@@ -521,30 +510,26 @@ def main_app():
             st.info("Nenhum produto encontrado.")
         else:
             cols_show = [c for c in ["codigo", "descricao", "marca", "unidade", "embalagem"] if c in df_filtrado.columns]
-            st.dataframe(
-                df_filtrado[cols_show].head(30).reset_index(drop=True),
-                use_container_width=True, hide_index=True,
-            )
+            st.dataframe(df_filtrado[cols_show].head(30).reset_index(drop=True), use_container_width=True, hide_index=True)
+
             cod_options = df_filtrado["codigo"].astype(str).tolist() if "codigo" in df_filtrado.columns else []
             cod_sel = st.selectbox("Selecionar produto pelo código", options=cod_options, key="cod_sel")
 
             if st.button("➕ Adicionar ao orçamento", type="primary", key="add_btn"):
                 row = df_filtrado[df_filtrado["codigo"].astype(str) == cod_sel].iloc[0]
-                custo = float(row.get("custo", 0) or 0)
-                preco = float(row.get("preco_venda", 0) or 0)
                 item = {
                     "codigo":        str(row.get("codigo", "")),
                     "descricao":     str(row.get("descricao", "")),
                     "marca":         str(row.get("marca", "")) if "marca" in row else "",
                     "unidade":       str(row.get("unidade", "")) if "unidade" in row else "",
-                    "custo_unit":    custo,
-                    "preco_unit":    preco,
+                    "custo_unit":    float(row.get("custo", 0) or 0),
+                    "preco_unit":    float(row.get("preco_venda", 0) or 0),
                     "qtd":           int(qtd),
                     "desc_item_pct": 0.0,
                     "desc_item_rs":  0.0,
                 }
                 st.session_state.itens_orcamento.append(item)
-                st.success(f"✅ '{item['descricao'][:50]}' adicionado!")
+                st.success(f"✅ '{item['descricao'][:55]}' adicionado!")
                 st.rerun()
 
     # ── Orçamento ────────────────────────────────────────────────────────────
@@ -586,10 +571,7 @@ def main_app():
                 st.markdown(f"**{item['descricao'][:60]}**")
                 st.caption(f"Cód: {item['codigo']}  ·  {item['marca']}  ·  {item.get('unidade','')}")
             with cb:
-                item["qtd"] = st.number_input(
-                    "Qtd", min_value=1, value=item["qtd"],
-                    key=f"qtd_{i}", label_visibility="collapsed",
-                )
+                item["qtd"] = st.number_input("Qtd", min_value=1, value=item["qtd"], key=f"qtd_{i}", label_visibility="collapsed")
             with cc:
                 item["desc_item_pct"] = st.number_input(
                     "Desc %", min_value=0.0, max_value=100.0,
@@ -625,7 +607,6 @@ def main_app():
                     delta=f"{margem_final - margem_orig:+.1f}%",
                     delta_color="normal" if margem_final >= margem_orig else "inverse",
                 )
-
                 total_custo          += custo_total
                 total_venda_original += preco_orig
                 total_venda_final    += preco_final
@@ -656,22 +637,20 @@ def main_app():
     with r1:
         st.metric("Total tabela", brl(total_venda_original))
     with r2:
-        diff = total_venda_final - total_venda_original
         st.metric("Total com descontos", brl(total_venda_final),
-                  delta=brl(diff), delta_color="inverse")
+                  delta=brl(total_venda_final - total_venda_original), delta_color="inverse")
     with r3:
         st.metric("Margem tabela", f"{margem_orig_geral:.1f}%")
     with r4:
         st.metric(
-            "Margem final",
-            f"{margem_final_geral:.1f}%",
+            "Margem final", f"{margem_final_geral:.1f}%",
             delta=f"{margem_final_geral - margem_orig_geral:+.1f}%",
             delta_color="normal" if margem_final_geral >= margem_orig_geral else "inverse",
         )
 
     st.markdown("<br>", unsafe_allow_html=True)
     if margem_final_geral < 10:
-        st.markdown('<div class="alcada-err">🚨 <b>Margem abaixo de 10%!</b> Revise os descontos antes de enviar o orçamento.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="alcada-err">🚨 <b>Margem abaixo de 10%!</b> Revise os descontos antes de enviar.</div>', unsafe_allow_html=True)
     elif margem_final_geral < 20:
         st.markdown('<div class="alcada-warn">⚠️ <b>Margem abaixo de 20%.</b> Atenção antes de fechar o pedido.</div>', unsafe_allow_html=True)
     else:
