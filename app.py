@@ -489,63 +489,74 @@ def main_app():
     with aba_manual:
         c1, c2, c3 = st.columns([3, 2, 1])
         with c1:
-            busca = st.text_input("Código ou nome do produto", placeholder="Ex: 39394 ou ABRAÇADEIRA...", key="busca_manual")
+            busca = st.text_input(
+                "Código ou nome do produto",
+                placeholder="Ex: 39394 ou CABO...",
+                key="busca_manual",
+            )
         with c2:
-            marcas = ["Todas"] + sorted(df_tab["marca"].dropna().unique().tolist()) if "marca" in df_tab.columns else ["Todas"]
-            marca_filtro = st.selectbox("Filtrar por marca", marcas)
+            marcas = (["Todas"] + sorted(df_tab["marca"].dropna().unique().tolist())
+                      if "marca" in df_tab.columns else ["Todas"])
+            marca_filtro = st.selectbox("Filtrar por marca", marcas, key="marca_filtro")
         with c3:
-            qtd = st.number_input("Quantidade", min_value=1, value=1, step=1)
+            qtd = st.number_input("Quantidade", min_value=1, value=1, step=1, key="busca_qtd")
 
-        df_filtrado = df_tab.copy()
-        if marca_filtro != "Todas" and "marca" in df_filtrado.columns:
-            df_filtrado = df_filtrado[df_filtrado["marca"] == marca_filtro]
-        if busca.strip():
-            mask = pd.Series([False] * len(df_filtrado), index=df_filtrado.index)
+        busca_val  = st.session_state.get("busca_manual", "").strip()
+        marca_val  = st.session_state.get("marca_filtro", "Todas")
+
+        # Filtra o dataframe
+        df_f = df_tab.copy()
+        if marca_val != "Todas" and "marca" in df_f.columns:
+            df_f = df_f[df_f["marca"] == marca_val]
+        if busca_val:
+            mask = pd.Series(False, index=df_f.index)
             for col in ["codigo", "descricao"]:
-                if col in df_filtrado.columns:
-                    mask |= df_filtrado[col].astype(str).str.lower().str.contains(busca.strip().lower(), na=False)
-            df_filtrado = df_filtrado[mask]
+                if col in df_f.columns:
+                    mask |= df_f[col].astype(str).str.upper().str.contains(busca_val.upper(), na=False)
+            df_f = df_f[mask]
 
-        if busca.strip() or marca_filtro != "Todas":
-            if df_filtrado.empty:
-                st.info("Nenhum produto encontrado.")
-            else:
-                cols_show = [c for c in ["codigo", "descricao", "marca", "unidade", "embalagem"] if c in df_filtrado.columns]
-                st.dataframe(
-                    df_filtrado[cols_show].head(50).reset_index(drop=True),
-                    use_container_width=True, hide_index=True,
-                    height=min(400, 35 * min(len(df_filtrado), 50) + 38),
-                )
-                st.caption(f"{len(df_filtrado)} produto(s) — mostrando até 50")
+        tem_filtro = busca_val or marca_val != "Todas"
 
-                cod_options = df_filtrado["codigo"].astype(str).tolist() if "codigo" in df_filtrado.columns else []
-
-                def fmt_cod(c):
-                    match = df_filtrado[df_filtrado["codigo"].astype(str) == c]
-                    desc  = match["descricao"].values[0][:55] if not match.empty and "descricao" in match.columns else ""
-                    return f"{c} — {desc}"
-
-                cod_sel = st.selectbox("Selecionar produto", options=cod_options, format_func=fmt_cod, key="cod_sel")
-
-                if st.button("➕ Adicionar ao orçamento", type="primary", key="add_btn"):
-                    row = df_filtrado[df_filtrado["codigo"].astype(str) == cod_sel].iloc[0]
-                    item = {
-                        "codigo":        str(row.get("codigo", "")),
-                        "descricao":     str(row.get("descricao", "")),
-                        "marca":         str(row.get("marca", "")) if "marca" in row else "",
-                        "unidade":       str(row.get("unidade", "")) if "unidade" in row else "",
-                        "custo_unit":    float(row.get("custo", 0) or 0),
-                        "preco_unit":    float(row.get("preco_venda", 0) or 0),
-                        "qtd":           int(qtd),
-                        "desc_item_pct": 0.0,
-                        "desc_item_rs":  0.0,
-                    }
-                    st.session_state.itens_orcamento.append(item)
-                    st.success(f"\u2705 **{item['descricao'][:55]}** adicionado! Qtd: {item['qtd']}")
+        if not tem_filtro:
+            st.caption("Digite um código/nome ou selecione uma marca para buscar.")
+        elif df_f.empty:
+            st.warning("Nenhum produto encontrado.")
         else:
-            st.caption("Digite um código, nome ou selecione uma marca para buscar.")
+            cols_show = [c for c in ["codigo", "descricao", "marca", "unidade"] if c in df_f.columns]
+            st.dataframe(
+                df_f[cols_show].head(50).reset_index(drop=True),
+                use_container_width=True,
+                hide_index=True,
+                height=min(380, 36 * min(len(df_f), 50) + 38),
+            )
+            st.caption(f"{len(df_f)} produto(s) — mostrando até 50")
 
-    # ── ABA 2: Importar Excel ─────────────────────────────────────────────────
+            cod_list = df_f["codigo"].astype(str).tolist()
+
+            def fmt(c):
+                r = df_f[df_f["codigo"].astype(str) == c]
+                if r.empty: return c
+                desc = r.iloc[0].get("descricao", "")
+                return f"{c}  —  {str(desc)[:60]}"
+
+            cod_sel = st.selectbox("Selecionar produto", cod_list, format_func=fmt, key="cod_sel")
+
+            if st.button("➕ Adicionar ao orçamento", type="primary", key="add_btn"):
+                r = df_f[df_f["codigo"].astype(str) == cod_sel].iloc[0]
+                item = {
+                    "codigo":        str(r.get("codigo", "")),
+                    "descricao":     str(r.get("descricao", "")),
+                    "marca":         str(r.get("marca", "")) if "marca" in r.index else "",
+                    "unidade":       str(r.get("unidade", "")) if "unidade" in r.index else "",
+                    "custo_unit":    float(r.get("custo", 0) or 0),
+                    "preco_unit":    float(r.get("preco_venda", 0) or 0),
+                    "qtd":           int(st.session_state.get("busca_qtd", 1)),
+                    "desc_item_pct": 0.0,
+                    "desc_item_rs":  0.0,
+                }
+                st.session_state.itens_orcamento.append(item)
+                st.success(f"✅ **{item['descricao'][:55]}** adicionado! (Qtd: {item['qtd']})")
+
     with aba_excel:
         import io
         st.markdown('''
