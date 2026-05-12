@@ -215,7 +215,8 @@ def init_session():
         "mapao_path":         None,   # ← caminho do arquivo salvo (sem global)
         "itens_orcamento":    [],
         "desconto_geral_pct": 0.0,
-        "desconto_geral_rs":  0.0,
+        "desconto_geral_pct": 0.0,
+        "acrescimo_geral_pct": 0.0,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -565,7 +566,7 @@ def main_app():
                     "preco_unit":    float(r.get("preco_venda", 0) or 0),
                     "qtd":           int(st.session_state.get("busca_qtd", 1)),
                     "desc_item_pct": 0.0,
-                    "desc_item_rs":  0.0,
+                    "acrescimo_pct": 0.0,
                 }
                 st.session_state.itens_orcamento.append(item)
                 st.success(f"✅ **{item['descricao'][:55]}** adicionado! (Qtd: {item['qtd']})")
@@ -653,7 +654,7 @@ def main_app():
                             "preco_unit":    float(row["_preco"]),
                             "qtd":           int(row["_qtd"]),
                             "desc_item_pct": 0.0,
-                            "desc_item_rs":  0.0,
+                            "acrescimo_pct": 0.0,
                         })
 
                     if encontrados:
@@ -692,7 +693,7 @@ def main_app():
         st.info("Nenhum item adicionado ainda.")
         return
 
-    with st.expander("💸 Desconto Geral (aplica em todos os itens)"):
+    with st.expander("💸 Desconto / Acréscimo Geral (aplica em todos os itens)"):
         dg1, dg2 = st.columns(2)
         with dg1:
             st.session_state.desconto_geral_pct = st.number_input(
@@ -700,13 +701,13 @@ def main_app():
                 value=float(st.session_state.desconto_geral_pct), step=0.5, format="%.2f",
             )
         with dg2:
-            st.session_state.desconto_geral_rs = st.number_input(
-                "Desconto geral (R$)", min_value=0.0,
-                value=float(st.session_state.desconto_geral_rs), step=1.0, format="%.2f",
+            st.session_state.acrescimo_geral_pct = st.number_input(
+                "Acréscimo geral (%)", min_value=0.0, max_value=100.0,
+                value=float(st.session_state.get("acrescimo_geral_pct", 0.0)), step=0.5, format="%.2f",
             )
 
-    dg_pct = float(st.session_state.desconto_geral_pct)
-    dg_rs  = float(st.session_state.desconto_geral_rs)
+    dg_pct  = float(st.session_state.desconto_geral_pct)
+    dg_acre = float(st.session_state.get("acrescimo_geral_pct", 0.0))
 
     # ── Cabeçalho da tabela ──────────────────────────────────────────────────
     st.markdown(f"""
@@ -716,7 +717,7 @@ def main_app():
         <span style="flex:4">Produto</span>
         <span style="flex:1;text-align:center">Qtd</span>
         <span style="flex:1.5;text-align:center">Desc %</span>
-        <span style="flex:1.5;text-align:center">Desc R$</span>
+        <span style="flex:1.5;text-align:center">Acrésc %</span>
         <span style="flex:1.2;text-align:center">Margem</span>
         <span style="flex:0.4"></span>
     </div>
@@ -731,15 +732,22 @@ def main_app():
         # Calcula preços/margens para este item
         custo_total = item["custo_unit"] * item["qtd"]
         preco_orig  = item["preco_unit"] * item["qtd"]
-        d_pct = item["desc_item_pct"]
-        d_rs  = item["desc_item_rs"]
+        d_pct  = item["desc_item_pct"]
+        a_pct  = item.get("acrescimo_pct", 0.0)
+        # Desconto tem prioridade sobre acréscimo no mesmo item
         if d_pct > 0:
             preco_apos_item = preco_orig * (1 - d_pct / 100)
-        elif d_rs > 0:
-            preco_apos_item = max(0.0, preco_orig - d_rs)
+        elif a_pct > 0:
+            preco_apos_item = preco_orig * (1 + a_pct / 100)
         else:
             preco_apos_item = preco_orig
-        preco_final  = preco_apos_item * (1 - dg_pct / 100) if dg_pct > 0 else preco_apos_item
+        # Aplica geral: desconto tem prioridade sobre acréscimo
+        if dg_pct > 0:
+            preco_final = preco_apos_item * (1 - dg_pct / 100)
+        elif dg_acre > 0:
+            preco_final = preco_apos_item * (1 + dg_acre / 100)
+        else:
+            preco_final = preco_apos_item
         margem_orig  = calcular_margem(custo_total, preco_orig)
         margem_final = calcular_margem(custo_total, preco_final)
         cor_margem   = "#0a5c31" if margem_final >= 20 else ("#7d5c00" if margem_final >= 10 else "#8b1a1a")
@@ -768,10 +776,10 @@ def main_app():
                     value=float(item["desc_item_pct"]), step=0.5, format="%.1f",
                     key=f"dpct_{i}", label_visibility="collapsed")
             with cd:
-                item["desc_item_rs"] = st.number_input(
-                    "Desc R$", min_value=0.0,
-                    value=float(item["desc_item_rs"]), step=0.5, format="%.2f",
-                    key=f"drs_{i}", label_visibility="collapsed")
+                item["acrescimo_pct"] = st.number_input(
+                    "Acrésc %", min_value=0.0, max_value=100.0,
+                    value=float(item.get("acrescimo_pct", 0.0)), step=0.5, format="%.1f",
+                    key=f"acre_{i}", label_visibility="collapsed")
             with ce:
                 st.markdown(
                     f'<div style="text-align:center;padding:4px 0">'
@@ -790,8 +798,6 @@ def main_app():
     if to_remove:
         st.rerun()
 
-    if dg_pct == 0 and dg_rs > 0:
-        total_venda_final = max(0.0, total_venda_final - dg_rs)
 
     # ── Resumo ────────────────────────────────────────────────────────────────
     st.markdown("---")
@@ -832,18 +838,19 @@ def main_app():
         ct   = item["custo_unit"] * item["qtd"]
         po   = item["preco_unit"] * item["qtd"]
         dpct = item["desc_item_pct"]
-        drs  = item["desc_item_rs"]
+        apct = item.get("acrescimo_pct", 0.0)
         if dpct > 0:
             pa = po * (1 - dpct / 100)
-        elif drs > 0:
-            pa = max(0.0, po - drs)
+        elif apct > 0:
+            pa = po * (1 + apct / 100)
         else:
             pa = po
-        pf = pa * (1 - dg_pct / 100) if dg_pct > 0 else pa
-        if dg_pct == 0 and dg_rs > 0:
-            # proporcional
-            prop = po / total_venda_original if total_venda_original > 0 else 0
-            pf   = max(0.0, pa - dg_rs * prop)
+        if dg_pct > 0:
+            pf = pa * (1 - dg_pct / 100)
+        elif dg_acre > 0:
+            pf = pa * (1 + dg_acre / 100)
+        else:
+            pf = pa
         rows_export.append({
             "Código":             item["codigo"],
             "Produto":            item["descricao"],
@@ -852,7 +859,7 @@ def main_app():
             "Qtd":                item["qtd"],
             "Preço unit. tabela": round(item["preco_unit"], 4),
             "Desc item (%)":      round(dpct, 2),
-            "Desc item (R$)":     round(drs, 2),
+            "Acrésc item (%)":    round(apct, 2),
             "Desc geral (%)":     round(dg_pct, 2),
             "Preço unit. final":  round(pf / item["qtd"], 4) if item["qtd"] > 0 else 0,
             "Total final":        round(pf, 2),
@@ -894,8 +901,8 @@ def main_app():
     with col_clear:
         if st.button("🗑️ Limpar orçamento completo", use_container_width=True):
             st.session_state.itens_orcamento    = []
-            st.session_state.desconto_geral_pct = 0.0
-            st.session_state.desconto_geral_rs  = 0.0
+            st.session_state.desconto_geral_pct  = 0.0
+            st.session_state.acrescimo_geral_pct = 0.0
             st.rerun()
 
 
