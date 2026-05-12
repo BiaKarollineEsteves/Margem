@@ -166,7 +166,20 @@ input:focus {{
     color: #666; font-size: .85rem; margin: 0;
     padding-top: .5rem; text-align: right;
 }}
-hr {{ border-color: #dde3ef !important; }}
+hr { border-color: #dde3ef !important; }
+
+/* ── Item row (compact) ── */
+.item-row {
+    background: #fff;
+    border: 1px solid #dde3ef;
+    border-left: 4px solid #FAC319;
+    border-radius: 8px;
+    padding: .45rem .9rem;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+}
+.item-row:hover { border-left-color: #007FE0; background: #fafbfd; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -695,64 +708,81 @@ def main_app():
     dg_pct = float(st.session_state.desconto_geral_pct)
     dg_rs  = float(st.session_state.desconto_geral_rs)
 
+    # ── Cabeçalho da tabela ──────────────────────────────────────────────────
+    st.markdown(f"""
+    <div style="display:flex;align-items:center;padding:6px 10px;background:#e8edf5;
+                border-radius:7px;font-size:12px;font-weight:700;color:#041747;
+                text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">
+        <span style="flex:4">Produto</span>
+        <span style="flex:1;text-align:center">Qtd</span>
+        <span style="flex:1.5;text-align:center">Desc %</span>
+        <span style="flex:1.5;text-align:center">Desc R$</span>
+        <span style="flex:1.2;text-align:center">Margem</span>
+        <span style="flex:0.4"></span>
+    </div>
+    """, unsafe_allow_html=True)
+
     to_remove            = []
     total_custo          = 0.0
     total_venda_original = 0.0
     total_venda_final    = 0.0
 
     for i, item in enumerate(itens):
-        with st.container():
-            st.markdown('<div class="item-card">', unsafe_allow_html=True)
-            ca, cb, cc, cd, ce, cf = st.columns([3, 1, 2, 2, 2, 0.5])
+        # Calcula preços/margens para este item
+        custo_total = item["custo_unit"] * item["qtd"]
+        preco_orig  = item["preco_unit"] * item["qtd"]
+        d_pct = item["desc_item_pct"]
+        d_rs  = item["desc_item_rs"]
+        if d_pct > 0:
+            preco_apos_item = preco_orig * (1 - d_pct / 100)
+        elif d_rs > 0:
+            preco_apos_item = max(0.0, preco_orig - d_rs)
+        else:
+            preco_apos_item = preco_orig
+        preco_final  = preco_apos_item * (1 - dg_pct / 100) if dg_pct > 0 else preco_apos_item
+        margem_orig  = calcular_margem(custo_total, preco_orig)
+        margem_final = calcular_margem(custo_total, preco_final)
+        cor_margem   = "#0a5c31" if margem_final >= 20 else ("#7d5c00" if margem_final >= 10 else "#8b1a1a")
+        seta         = "▲" if margem_final >= margem_orig else "▼"
+        delta_str    = f"{seta} {abs(margem_final - margem_orig):.1f}pp"
 
+        total_custo          += custo_total
+        total_venda_original += preco_orig
+        total_venda_final    += preco_final
+
+        with st.container():
+            st.markdown('<div class="item-row">', unsafe_allow_html=True)
+            ca, cb, cc, cd, ce, cf = st.columns([4, 1, 1.5, 1.5, 1.2, 0.4])
             with ca:
-                st.markdown(f"**{item['descricao'][:60]}**")
-                st.caption(f"Cód: {item['codigo']}  ·  {item['marca']}  ·  {item.get('unidade','')}")
+                st.markdown(
+                    f'<div style="font-size:13px;font-weight:600;color:#041747;line-height:1.3">{item["descricao"][:65]}</div>'
+                    f'<div style="font-size:11px;color:#888;margin-top:2px">Cód: {item["codigo"]} · {item["marca"]} · {item.get("unidade","")}</div>',
+                    unsafe_allow_html=True,
+                )
             with cb:
-                item["qtd"] = st.number_input("Qtd", min_value=1, value=item["qtd"], key=f"qtd_{i}")
+                item["qtd"] = st.number_input("Qtd", min_value=1, value=item["qtd"],
+                    key=f"qtd_{i}", label_visibility="collapsed")
             with cc:
                 item["desc_item_pct"] = st.number_input(
-                    "Desconto (%)", min_value=0.0, max_value=100.0,
-                    value=float(item["desc_item_pct"]), step=0.5, format="%.2f",
-                    key=f"dpct_{i}",
-                )
+                    "Desc %", min_value=0.0, max_value=100.0,
+                    value=float(item["desc_item_pct"]), step=0.5, format="%.1f",
+                    key=f"dpct_{i}", label_visibility="collapsed")
             with cd:
                 item["desc_item_rs"] = st.number_input(
-                    "Desconto (R$)", min_value=0.0,
+                    "Desc R$", min_value=0.0,
                     value=float(item["desc_item_rs"]), step=0.5, format="%.2f",
-                    key=f"drs_{i}",
-                )
+                    key=f"drs_{i}", label_visibility="collapsed")
             with ce:
-                custo_total = item["custo_unit"] * item["qtd"]
-                preco_orig  = item["preco_unit"] * item["qtd"]
-
-                d_pct = item["desc_item_pct"]
-                d_rs  = item["desc_item_rs"]
-                if d_pct > 0:
-                    preco_apos_item = preco_orig * (1 - d_pct / 100)
-                elif d_rs > 0:
-                    preco_apos_item = max(0.0, preco_orig - d_rs)
-                else:
-                    preco_apos_item = preco_orig
-
-                preco_final  = preco_apos_item * (1 - dg_pct / 100) if dg_pct > 0 else preco_apos_item
-                margem_orig  = calcular_margem(custo_total, preco_orig)
-                margem_final = calcular_margem(custo_total, preco_final)
-
-                st.metric(
-                    label="Margem item",
-                    value=f"{margem_final:.1f}%",
-                    delta=f"{margem_final - margem_orig:+.1f}%",
-                    delta_color="normal" if margem_final >= margem_orig else "inverse",
+                st.markdown(
+                    f'<div style="text-align:center;padding:4px 0">'
+                    f'<div style="font-size:18px;font-weight:700;color:{cor_margem}">{margem_final:.1f}%</div>'
+                    f'<div style="font-size:11px;color:{cor_margem};opacity:.8">{delta_str}</div>'
+                    f'</div>',
+                    unsafe_allow_html=True,
                 )
-                total_custo          += custo_total
-                total_venda_original += preco_orig
-                total_venda_final    += preco_final
-
             with cf:
-                if st.button("🗑️", key=f"del_{i}"):
+                if st.button("✕", key=f"del_{i}", help="Remover item"):
                     to_remove.append(i)
-
             st.markdown('</div>', unsafe_allow_html=True)
 
     for i in reversed(to_remove):
@@ -794,12 +824,80 @@ def main_app():
     else:
         st.markdown('<div class="alcada-ok">✅ <b>Margem saudável.</b> Orçamento dentro dos parâmetros.</div>', unsafe_allow_html=True)
 
+    # ── Exportar relatório ────────────────────────────────────────────────────
     st.markdown("---")
-    if st.button("🗑️ Limpar orçamento completo"):
-        st.session_state.itens_orcamento    = []
-        st.session_state.desconto_geral_pct = 0.0
-        st.session_state.desconto_geral_rs  = 0.0
-        st.rerun()
+    import io as _io
+    rows_export = []
+    for item in itens:
+        ct   = item["custo_unit"] * item["qtd"]
+        po   = item["preco_unit"] * item["qtd"]
+        dpct = item["desc_item_pct"]
+        drs  = item["desc_item_rs"]
+        if dpct > 0:
+            pa = po * (1 - dpct / 100)
+        elif drs > 0:
+            pa = max(0.0, po - drs)
+        else:
+            pa = po
+        pf = pa * (1 - dg_pct / 100) if dg_pct > 0 else pa
+        if dg_pct == 0 and dg_rs > 0:
+            # proporcional
+            prop = po / total_venda_original if total_venda_original > 0 else 0
+            pf   = max(0.0, pa - dg_rs * prop)
+        rows_export.append({
+            "Código":             item["codigo"],
+            "Produto":            item["descricao"],
+            "Marca":              item["marca"],
+            "Unidade":            item.get("unidade", ""),
+            "Qtd":                item["qtd"],
+            "Preço unit. tabela": round(item["preco_unit"], 4),
+            "Desc item (%)":      round(dpct, 2),
+            "Desc item (R$)":     round(drs, 2),
+            "Desc geral (%)":     round(dg_pct, 2),
+            "Preço unit. final":  round(pf / item["qtd"], 4) if item["qtd"] > 0 else 0,
+            "Total final":        round(pf, 2),
+            "Margem (%)":         round(calcular_margem(ct, pf), 2),
+        })
+
+    df_export = pd.DataFrame(rows_export)
+    # Linha de totais
+    total_row = {
+        "Código": "TOTAL", "Produto": "", "Marca": "", "Unidade": "",
+        "Qtd": sum(r["Qtd"] for r in rows_export),
+        "Preço unit. tabela": "",
+        "Desc item (%)": "", "Desc item (R$)": "", "Desc geral (%)": "",
+        "Preço unit. final": "",
+        "Total final": round(total_venda_final, 2),
+        "Margem (%)": round(margem_final_geral, 2),
+    }
+    df_export = pd.concat([df_export, pd.DataFrame([total_row])], ignore_index=True)
+
+    buf = _io.BytesIO()
+    with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+        df_export.to_excel(writer, index=False, sheet_name="Orçamento")
+        ws = writer.sheets["Orçamento"]
+        # Larguras automáticas
+        for col in ws.columns:
+            max_len = max((len(str(c.value)) for c in col if c.value), default=10)
+            ws.column_dimensions[col[0].column_letter].width = min(max_len + 3, 50)
+
+    col_exp, col_clear = st.columns([2, 2])
+    with col_exp:
+        st.download_button(
+            "📥 Exportar relatório (Excel)",
+            data=buf.getvalue(),
+            file_name="orcamento_grupo_lle.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            type="primary",
+            use_container_width=True,
+        )
+    with col_clear:
+        if st.button("🗑️ Limpar orçamento completo", use_container_width=True):
+            st.session_state.itens_orcamento    = []
+            st.session_state.desconto_geral_pct = 0.0
+            st.session_state.desconto_geral_rs  = 0.0
+            st.rerun()
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  ROTEADOR
