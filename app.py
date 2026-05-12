@@ -166,10 +166,10 @@ input:focus {{
     color: #666; font-size: .85rem; margin: 0;
     padding-top: .5rem; text-align: right;
 }}
-hr { border-color: #dde3ef !important; }
+hr {{ border-color: #dde3ef !important; }}
 
 /* ── Item row (compact) ── */
-.item-row {
+.item-row {{
     background: #fff;
     border: 1px solid #dde3ef;
     border-left: 4px solid #FAC319;
@@ -178,8 +178,8 @@ hr { border-color: #dde3ef !important; }
     margin-bottom: 4px;
     display: flex;
     align-items: center;
-}
-.item-row:hover { border-left-color: #007FE0; background: #fafbfd; }
+}}
+.item-row:hover {{ border-left-color: #007FE0; background: #fafbfd; }}
 </style>
 """, unsafe_allow_html=True)
 
